@@ -1,0 +1,1346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vivek — Investment Tracker</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#ffffff;--bg2:#f5f5f3;--bg3:#efefec;
+  --text:#1a1a1a;--text2:#6b6b68;--text3:#9e9e9a;
+  --border:rgba(0,0,0,0.12);--border2:rgba(0,0,0,0.22);
+  --green:#1D9E75;--green-bg:#EAF3DE;--green-text:#3B6D11;
+  --red:#D85A30;--red-bg:#FCEBEB;--red-text:#A32D2D;
+  --blue:#378ADD;--blue-bg:#E6F1FB;--blue-text:#185FA5;
+  --amber:#BA7517;--amber-bg:#FAEEDA;--amber-text:#854F0B;
+  --purple:#7F77DD;--purple-bg:#F0EFFC;--purple-text:#4840BB;
+  --teal:#0E9090;--teal-bg:#E0F5F5;--teal-text:#0A6060;
+  --orange:#C95B0C;--orange-bg:#FDEBD6;--orange-text:#8A3606;
+  --radius:8px;--radius-lg:12px;
+}
+@media(prefers-color-scheme:dark){
+  :root{
+    --bg:#1c1c1a;--bg2:#252523;--bg3:#2e2e2b;
+    --text:#f0f0ec;--text2:#a0a09a;--text3:#6a6a65;
+    --border:rgba(255,255,255,0.1);--border2:rgba(255,255,255,0.2);
+    --green-bg:#0e2e1e;--green-text:#5DCAA5;
+    --red-bg:#2e1010;--red-text:#F09595;
+    --blue-bg:#042C53;--blue-text:#85B7EB;
+    --amber-bg:#2e1a00;--amber-text:#EF9F27;
+    --purple-bg:#1a1840;--purple-text:#a09eee;
+    --teal-bg:#012828;--teal-text:#4dc4c4;
+    --orange-bg:#2e1200;--orange-text:#F4924A;
+  }
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg3);color:var(--text);min-height:100vh;}
+.app{max-width:1100px;margin:0 auto;padding:24px 16px;}
+.header{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:24px;}
+.header-left h1{font-size:20px;font-weight:700;margin-bottom:2px;}
+.header-left p{font-size:13px;color:var(--text2);}
+.journey-badge{background:var(--green-bg);color:var(--green-text);font-size:12px;font-weight:600;padding:6px 12px;border-radius:99px;}
+.tabs{display:flex;gap:2px;background:var(--bg2);border-radius:var(--radius);padding:4px;margin-bottom:20px;flex-wrap:wrap;}
+.tab{padding:7px 14px;font-size:13px;font-weight:500;cursor:pointer;border:none;background:none;color:var(--text2);border-radius:6px;transition:all 0.15s;white-space:nowrap;}
+.tab.active{background:var(--bg);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,0.12);}
+.tab:hover:not(.active){color:var(--text);background:var(--bg3);}
+.section{display:none;}.section.active{display:block;}
+.card{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:16px;}
+.card-title{font-size:11px;font-weight:600;color:var(--text3);margin-bottom:16px;text-transform:uppercase;letter-spacing:0.06em;}
+.metric-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px;}
+.metric{background:var(--bg2);border-radius:var(--radius);padding:14px;}
+.metric-label{font-size:11px;color:var(--text2);margin-bottom:5px;}
+.metric-value{font-size:20px;font-weight:700;color:var(--text);line-height:1;}
+.metric-sub{font-size:11px;color:var(--text3);margin-top:4px;}
+.metric.positive .metric-value{color:var(--green);}
+.metric.negative .metric-value{color:var(--red);}
+.metric.highlight{background:var(--green-bg);}
+.metric.highlight .metric-value,.metric.highlight .metric-label{color:var(--green-text);}
+.metric.blue{background:var(--blue-bg);}
+.metric.blue .metric-value,.metric.blue .metric-label{color:var(--blue-text);}
+.metric.amber{background:var(--amber-bg);}
+.metric.amber .metric-value,.metric.amber .metric-label{color:var(--amber-text);}
+.metric.purple{background:var(--purple-bg);}
+.metric.purple .metric-value,.metric.purple .metric-label{color:var(--purple-text);}
+.metric.teal{background:var(--teal-bg);}
+.metric.teal .metric-value,.metric.teal .metric-label{color:var(--teal-text);}
+.metric.orange{background:var(--orange-bg);}
+.metric.orange .metric-value,.metric.orange .metric-label{color:var(--orange-text);}
+.live-bar{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:16px 20px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;}
+.live-label{font-size:11px;color:var(--text2);margin-bottom:3px;}
+.live-main{display:flex;align-items:baseline;gap:10px;}
+.live-value{font-size:30px;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums;}
+.live-diff-pos{font-size:15px;font-weight:600;color:var(--green);}
+.live-diff-neg{font-size:15px;font-weight:600;color:var(--red);}
+.live-diff-abs{font-size:12px;color:var(--text3);margin-top:2px;}
+.live-breakdown{display:flex;gap:16px;flex-wrap:wrap;}
+.lbi{font-size:11px;color:var(--text2);}
+.lbi span{display:block;font-size:13px;font-weight:600;color:var(--text);margin-top:2px;}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+.form-grid.three{grid-template-columns:1fr 1fr 1fr;}
+.form-group{display:flex;flex-direction:column;gap:5px;}
+.form-group label{font-size:11px;color:var(--text2);font-weight:500;}
+.form-group input,.form-group select{font-size:13px;padding:8px 10px;border:0.5px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text);width:100%;transition:border-color 0.15s;}
+.form-group input:focus,.form-group select:focus{outline:none;border-color:var(--blue);}
+.form-group .hint{font-size:10px;color:var(--text3);margin-top:2px;}
+.divider{border:none;border-top:0.5px solid var(--border);margin:14px 0;}
+.section-label{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;margin-top:4px;}
+.btn-row{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap;}
+.btn{padding:9px 18px;border-radius:var(--radius);font-size:13px;font-weight:600;cursor:pointer;border:0.5px solid var(--border2);background:var(--bg);color:var(--text);transition:all 0.15s;}
+.btn:hover{background:var(--bg2);}
+.btn.primary{background:var(--text);color:var(--bg);border-color:transparent;}
+.btn.primary:hover{opacity:0.85;}
+.btn.danger{color:var(--red-text);border-color:#F7C1C1;}
+.btn.danger:hover{background:var(--red-bg);}
+.btn.sm{padding:4px 10px;font-size:12px;}
+.btn.active-toggle{background:var(--blue);color:#fff;border-color:transparent;}
+.form-msg{margin-top:10px;font-size:13px;color:var(--green);min-height:18px;}
+.table-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:13px;min-width:680px;}
+th{text-align:left;font-weight:600;font-size:11px;color:var(--text2);padding:8px 10px;border-bottom:0.5px solid var(--border);white-space:nowrap;}
+td{padding:9px 10px;border-bottom:0.5px solid var(--border);color:var(--text);white-space:nowrap;vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:var(--bg2);}
+td.num{text-align:right;font-variant-numeric:tabular-nums;}
+.badge{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600;}
+.badge.green{background:var(--green-bg);color:var(--green-text);}
+.badge.red{background:var(--red-bg);color:var(--red-text);}
+.badge.blue{background:var(--blue-bg);color:var(--blue-text);}
+.badge.amber{background:var(--amber-bg);color:var(--amber-text);}
+.badge.gray{background:var(--bg2);color:var(--text2);}
+.badge.purple{background:var(--purple-bg);color:var(--purple-text);}
+.badge.orange{background:var(--orange-bg);color:var(--orange-text);}
+.tbl-actions{display:flex;gap:5px;justify-content:flex-end;}
+.growth-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;font-size:13px;}
+.growth-label{min-width:160px;color:var(--text2);}
+.bar-bg{flex:1;height:7px;background:var(--bg2);border-radius:99px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:99px;}
+.bar-val{min-width:65px;text-align:right;font-variant-numeric:tabular-nums;}
+.bar-pct{min-width:34px;text-align:right;font-size:11px;color:var(--text3);}
+.chart-wrap{position:relative;width:100%;height:300px;margin-top:16px;}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--text2);margin-bottom:8px;}
+.legend-item{display:flex;align-items:center;gap:5px;}
+.legend-dot{width:10px;height:10px;border-radius:2px;flex-shrink:0;}
+.empty{text-align:center;padding:48px 16px;color:var(--text2);font-size:14px;}
+.crypto-note{font-size:11px;color:var(--text3);font-style:italic;margin-top:10px;}
+.tiger-note{font-size:11px;color:var(--amber-text);font-style:italic;margin-top:6px;}
+.month-header{font-size:17px;font-weight:700;margin-bottom:14px;}
+.milestone-tag{display:inline-block;background:var(--green-bg);color:var(--green-text);font-size:10px;font-weight:600;padding:1px 6px;border-radius:4px;margin-left:4px;vertical-align:middle;}
+.fi-bar-bg{height:12px;background:var(--bg2);border-radius:99px;overflow:hidden;margin-top:6px;}
+.fi-bar-fill{height:100%;border-radius:99px;}
+/* engines */
+.fi-engine-box{background:var(--green-bg);border-radius:var(--radius-lg);padding:20px;margin-bottom:16px;border:1px solid rgba(29,158,117,0.2);}
+.fi-engine-title{font-size:12px;font-weight:600;color:var(--green-text);margin-bottom:12px;text-transform:uppercase;letter-spacing:0.05em;}
+.fi-engine-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;font-size:13px;}
+.fi-engine-label{color:var(--green-text);}
+.fi-engine-value{font-weight:700;color:var(--green-text);font-size:15px;}
+.fi-engine-divider{border:none;border-top:1px solid rgba(29,158,117,0.2);margin:10px 0;}
+.income-pill{display:inline-block;background:var(--green);color:#fff;font-size:11px;font-weight:700;padding:2px 10px;border-radius:99px;margin-left:6px;}
+.section-note{font-size:12px;color:var(--text2);margin-bottom:12px;padding:10px 14px;background:var(--bg2);border-radius:var(--radius);border-left:3px solid var(--blue);}
+.bond-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:0.5px solid var(--border);font-size:13px;}
+.bond-row:last-child{border-bottom:none;}
+.bond-yield-tag{background:var(--green-bg);color:var(--green-text);font-size:11px;font-weight:600;padding:2px 8px;border-radius:99px;}
+.tiger-exclusion-note{background:var(--amber-bg);border-radius:var(--radius);padding:10px 14px;font-size:12px;color:var(--amber-text);margin-top:10px;border-left:3px solid var(--amber);}
+/* targets */
+.targets-panel{background:var(--bg2);border-radius:var(--radius-lg);padding:16px;margin-bottom:16px;border:0.5px solid var(--border);}
+.targets-title{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:12px;}
+.target-row{display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:8px;margin-bottom:8px;}
+.target-row label{font-size:13px;color:var(--text2);}
+.target-input{width:110px;font-size:13px;padding:6px 10px;border:0.5px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text);text-align:right;}
+.target-unit{font-size:12px;color:var(--text3);min-width:30px;}
+/* timeline */
+.timeline{position:relative;padding-left:28px;margin-top:4px;}
+.timeline::before{content:'';position:absolute;left:8px;top:0;bottom:0;width:2px;background:var(--border);}
+.tl-item{position:relative;padding:0 0 18px 16px;}
+.tl-item:last-child{padding-bottom:0;}
+.tl-dot{position:absolute;left:-20px;top:3px;width:16px;height:16px;border-radius:50%;border:2px solid var(--bg3);display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;}
+.tl-dot.done{background:var(--green);color:#fff;}
+.tl-dot.next{background:var(--amber);color:#fff;animation:pulse 2s infinite;}
+.tl-dot.future{background:var(--bg2);border:2px solid var(--border2);}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(186,117,23,0.4);}50%{box-shadow:0 0 0 6px rgba(186,117,23,0);}}
+.tl-label{font-size:13px;font-weight:600;color:var(--text);}
+.tl-date{font-size:11px;color:var(--text2);margin-top:2px;line-height:1.6;}
+/* insights */
+.insight-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+.insight-card{background:var(--bg2);border-radius:var(--radius);padding:14px;border-left:3px solid var(--border2);}
+.insight-card.green{border-left-color:var(--green);}
+.insight-card.blue{border-left-color:var(--blue);}
+.insight-card.amber{border-left-color:var(--amber);}
+.insight-card.purple{border-left-color:var(--purple);}
+.insight-card.teal{border-left-color:var(--teal);}
+.insight-card.red{border-left-color:var(--red);}
+.insight-card.orange{border-left-color:var(--orange);}
+.insight-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text3);margin-bottom:5px;}
+.insight-value{font-size:16px;font-weight:700;color:var(--text);margin-bottom:3px;}
+.insight-sub{font-size:11px;color:var(--text2);line-height:1.5;}
+/* speed */
+.speed-box{background:var(--blue-bg);border-radius:var(--radius-lg);padding:16px;margin-bottom:12px;}
+.speed-title{font-size:11px;font-weight:600;color:var(--blue-text);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px;}
+.speed-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+.speed-item{text-align:center;}
+.speed-num{font-size:18px;font-weight:700;color:var(--blue-text);}
+.speed-label{font-size:10px;color:var(--blue-text);opacity:0.8;margin-top:2px;}
+/* FI countdown */
+.fi-countdown{background:linear-gradient(135deg,var(--green-bg),var(--blue-bg));border-radius:var(--radius-lg);padding:20px;margin-bottom:16px;border:1px solid rgba(29,158,117,0.15);}
+.fi-count-title{font-size:12px;font-weight:600;color:var(--green-text);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:12px;}
+.fi-count-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+.fi-count-item{text-align:center;background:rgba(255,255,255,0.45);border-radius:var(--radius);padding:10px;}
+.fi-count-num{font-size:22px;font-weight:700;color:var(--green-text);}
+.fi-count-label{font-size:10px;color:var(--green-text);opacity:0.8;margin-top:2px;}
+/* what-if */
+.whatif-box{background:var(--amber-bg);border-radius:var(--radius-lg);padding:16px;margin-bottom:16px;border:1px solid rgba(186,117,23,0.2);}
+.whatif-title{font-size:12px;font-weight:600;color:var(--amber-text);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:12px;}
+.whatif-controls{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px;}
+.whatif-input{background:var(--bg);color:var(--text);border:0.5px solid rgba(186,117,23,0.4);border-radius:var(--radius);padding:8px 10px;font-size:13px;width:100%;}
+.whatif-result{font-size:13px;color:var(--amber-text);line-height:2;}
+.ba-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:0.5px solid var(--border);font-size:13px;}
+.ba-row:last-child{border-bottom:none;}
+.ba-label{color:var(--text2);}
+.ba-value{font-weight:600;color:var(--text);}
+/* stock milestone special styles */
+.stock-tabs{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;}
+.stock-tab{padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;border:0.5px solid var(--border2);border-radius:99px;background:var(--bg2);color:var(--text2);transition:all 0.15s;}
+.stock-tab.active{background:var(--purple);color:#fff;border-color:var(--purple);}
+.stock-tab:hover:not(.active){background:var(--bg3);color:var(--text);}
+.milestone-highlight-row{background:var(--green-bg)!important;}
+.milestone-highlight-row td{color:var(--green-text)!important;font-weight:600!important;}
+.stock-summary-box{background:var(--purple-bg);border-radius:var(--radius-lg);padding:16px;margin-bottom:16px;border:1px solid rgba(127,119,221,0.25);}
+.stock-summary-title{font-size:11px;font-weight:600;color:var(--purple-text);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px;}
+.stock-cagr-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.stock-cagr-item{text-align:center;background:rgba(127,119,221,0.12);border-radius:var(--radius);padding:10px;}
+.stock-cagr-num{font-size:18px;font-weight:700;color:var(--purple-text);}
+.stock-cagr-label{font-size:10px;color:var(--purple-text);opacity:0.8;margin-top:2px;}
+.missed-card{background:var(--orange-bg);border-radius:var(--radius-lg);padding:16px;margin-bottom:12px;border:1px solid rgba(201,91,12,0.2);}
+.missed-title{font-size:11px;font-weight:600;color:var(--orange-text);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px;}
+.missed-row{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:0.5px solid rgba(201,91,12,0.15);}
+.missed-row:last-child{border-bottom:none;}
+.missed-icon{font-size:16px;flex-shrink:0;margin-top:1px;}
+.missed-body{flex:1;}
+.missed-label{font-size:13px;font-weight:600;color:var(--orange-text);}
+.missed-detail{font-size:12px;color:var(--text2);margin-top:3px;line-height:1.6;}
+/* bond summary in crores */
+.bond-cr-box{background:var(--blue-bg);border-radius:var(--radius-lg);padding:16px;margin-bottom:16px;border:1px solid rgba(55,138,221,0.2);}
+.bond-cr-title{font-size:11px;font-weight:600;color:var(--blue-text);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:12px;}
+.bond-cr-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+.bond-cr-item{text-align:center;background:rgba(55,138,221,0.12);border-radius:var(--radius);padding:12px;}
+.bond-cr-num{font-size:20px;font-weight:700;color:var(--blue-text);}
+.bond-cr-label{font-size:10px;color:var(--blue-text);opacity:0.8;margin-top:3px;}
+@media(max-width:700px){
+  .form-grid,.form-grid.three{grid-template-columns:1fr;}
+  .metric-grid{grid-template-columns:1fr 1fr;}
+  .live-bar{flex-direction:column;align-items:flex-start;}
+  .insight-grid{grid-template-columns:1fr;}
+  .fi-count-grid,.bond-cr-row,.speed-grid{grid-template-columns:1fr 1fr;}
+  .stock-cagr-grid,.whatif-controls{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div class="header-left">
+      <h1>&#128200; Investment Tracker</h1>
+      <p>Monthly portfolio snapshot &mdash; Vivek&rsquo;s wealth journey since July 2022</p>
+    </div>
+    <div class="journey-badge" id="journey-badge">Loading...</div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('dashboard')">Dashboard</button>
+    <button class="tab" onclick="showTab('history')">History</button>
+    <button class="tab" onclick="showTab('entry')">Add / Edit</button>
+    <button class="tab" onclick="showTab('chart')">Charts</button>
+    <button class="tab" onclick="showTab('fi')">FI Tracker</button>
+    <button class="tab" onclick="showTab('bonds')">Bonds</button>
+    <button class="tab" onclick="showTab('stocks')">Stocks</button>
+    <button class="tab" onclick="showTab('milestones')">Milestones</button>
+    <button class="tab" onclick="showTab('insights')">Insights</button>
+    <button class="tab" onclick="showTab('targets')">&#9881; Targets</button>
+  </div>
+
+  <div id="tab-dashboard" class="section active"><div id="dashboard-content"></div></div>
+  <div id="tab-history" class="section"><div id="history-content"></div></div>
+
+  <div id="tab-entry" class="section">
+    <div class="live-bar">
+      <div>
+        <div class="live-label">Total this month (live)</div>
+        <div class="live-main">
+          <div class="live-value" id="live-total">&#8377;0</div>
+          <div id="live-diff"></div>
+        </div>
+        <div class="live-diff-abs" id="live-diff-abs"></div>
+      </div>
+      <div class="live-breakdown" id="live-breakdown"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Monthly portfolio snapshot</div>
+      <div class="form-grid three">
+        <div class="form-group"><label>Month</label>
+          <select id="f-month" onchange="onFormChange()">
+            <option value="1">January</option><option value="2">February</option><option value="3">March</option>
+            <option value="4">April</option><option value="5">May</option><option value="6">June</option>
+            <option value="7">July</option><option value="8">August</option><option value="9">September</option>
+            <option value="10">October</option><option value="11">November</option><option value="12">December</option>
+          </select></div>
+        <div class="form-group"><label>Year</label><input type="number" id="f-year" value="2026" min="2020" max="2050" oninput="onFormChange()"></div>
+        <div class="form-group"><label>USD/INR rate</label><input type="number" id="f-usdrate" value="87" step="0.5" oninput="onFormChange()"></div>
+      </div>
+      <hr class="divider">
+      <div class="section-label">Liquid &amp; equity</div>
+      <div class="form-grid">
+        <div class="form-group"><label>Mutual funds (&#8377;L)</label><input type="number" id="f-mf" step="0.01" placeholder="e.g. 13.26" oninput="onFormChange()"></div>
+        <div class="form-group"><label>Savings bank (&#8377;L)</label><input type="number" id="f-savings" step="0.01" placeholder="e.g. 1.40" oninput="onFormChange()"></div>
+      </div>
+      <div class="form-grid">
+        <div class="form-group"><label>Aionion stocks (&#8377;L)</label><input type="number" id="f-aistock" step="0.01" placeholder="e.g. 33.80" oninput="onFormChange()"></div>
+        <div class="form-group"><label>Zerodha stocks (&#8377;L)</label><input type="number" id="f-zerodha" step="0.01" placeholder="e.g. 12.85" oninput="onFormChange()"></div>
+      </div>
+      <hr class="divider">
+      <div class="section-label">Bond corpus &mdash; each tranche with its yield</div>
+      <div id="bond-carryover-hint" style="display:none;font-size:12px;color:var(--blue-text);background:var(--blue-bg);border-radius:var(--radius);padding:7px 12px;margin-bottom:8px;border-left:3px solid var(--blue)"></div>
+      <div id="bond-tranches"></div>
+      <button class="btn sm" onclick="addBondTranche()" style="margin-bottom:10px">+ Add bond tranche</button>
+      <hr class="divider">
+      <div class="section-label">International &amp; crypto</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Tiger US stocks ($)</label>
+          <input type="number" id="f-tiger-usd" step="1" placeholder="e.g. 18800" oninput="onFormChange()">
+          <span class="hint">&#9888;&#65039; Liquidate on India return &mdash; tracked separately</span>
+        </div>
+        <div class="form-group"><label>Coinbase crypto (S$)</label><input type="number" id="f-crypto" step="1" placeholder="e.g. 540" oninput="onFormChange()"></div>
+      </div>
+      <div class="form-group" style="margin-top:8px"><label>Notes</label><input type="text" id="f-notes" placeholder="e.g. Added Muthoot bond @10.5%"></div>
+      <div class="btn-row">
+        <button class="btn primary" onclick="saveEntry()">Save entry</button>
+        <button class="btn" onclick="clearForm()">Clear</button>
+      </div>
+      <div class="form-msg" id="form-msg"></div>
+    </div>
+  </div>
+
+  <div id="tab-chart" class="section"><div id="chart-content"></div></div>
+  <div id="tab-fi" class="section"><div id="fi-content"></div></div>
+  <div id="tab-bonds" class="section"><div id="bonds-content"></div></div>
+  <div id="tab-stocks" class="section"><div id="stocks-content"></div></div>
+  <div id="tab-milestones" class="section"><div id="milestones-content"></div></div>
+  <div id="tab-insights" class="section"><div id="insights-content"></div></div>
+
+  <div id="tab-targets" class="section">
+    <div class="card">
+      <div class="card-title">&#9881; Editable targets &amp; assumptions</div>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:20px;">All values here drive calculations across every tab. Change &amp; apply instantly.</p>
+      <div class="targets-panel">
+        <div class="targets-title">Bond corpus &amp; income</div>
+        <div class="target-row"><label>Bond corpus target</label><input type="number" class="target-input" id="t-bond-target" step="0.1" value="2" oninput="saveTargets()"><span class="target-unit">&#8377; Cr</span></div>
+        <div class="target-row"><label>Monthly passive income target</label><input type="number" class="target-input" id="t-income-target" step="5000" value="150000" oninput="saveTargets()"><span class="target-unit">&#8377;</span></div>
+        <div class="target-row"><label>Monthly expenses post-FI</label><input type="number" class="target-input" id="t-expenses" step="5000" value="120000" oninput="saveTargets()"><span class="target-unit">&#8377;</span></div>
+        <div class="target-row"><label>Assumed blended bond yield</label><input type="number" class="target-input" id="t-bond-yield" step="0.1" value="9" oninput="saveTargets()"><span class="target-unit">%</span></div>
+      </div>
+      <div class="targets-panel">
+        <div class="targets-title">FI date &amp; equity assumptions</div>
+        <div class="target-row"><label>Target FI month</label>
+          <select id="t-fi-month" onchange="saveTargets()" style="width:110px;font-size:13px;padding:6px 10px;border:0.5px solid var(--border2);border-radius:var(--radius);background:var(--bg);color:var(--text);">
+            <option value="1">Jan</option><option value="2">Feb</option><option value="3">Mar</option><option value="4">Apr</option>
+            <option value="5">May</option><option value="6">Jun</option><option value="7" selected>Jul</option><option value="8">Aug</option>
+            <option value="9">Sep</option><option value="10">Oct</option><option value="11">Nov</option><option value="12">Dec</option>
+          </select><span class="target-unit"></span>
+        </div>
+        <div class="target-row"><label>Target FI year</label><input type="number" class="target-input" id="t-fi-year" value="2031" min="2026" max="2045" oninput="saveTargets()"><span class="target-unit">year</span></div>
+        <div class="target-row"><label>Equity CAGR assumption</label><input type="number" class="target-input" id="t-eq-cagr" step="0.5" value="12" oninput="saveTargets()"><span class="target-unit">%</span></div>
+        <div class="target-row"><label>India return year</label><input type="number" class="target-input" id="t-india-return" step="1" value="2031" oninput="saveTargets()"><span class="target-unit">year</span></div>
+      </div>
+      <div class="targets-panel">
+        <div class="targets-title">Monthly savings &amp; allocation</div>
+        <div class="target-row"><label>Monthly savings to invest</label><input type="number" class="target-input" id="t-monthly-savings" step="10000" value="100000" oninput="saveTargets()"><span class="target-unit">&#8377;</span></div>
+        <div class="target-row"><label>Of which: monthly bond allocation</label><input type="number" class="target-input" id="t-monthly-bond" step="10000" value="50000" oninput="saveTargets()"><span class="target-unit">&#8377;</span></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn primary" onclick="applyTargets()">Apply &amp; refresh all tabs</button>
+        <button class="btn" onclick="resetTargets()">Reset to defaults</button>
+      </div>
+      <p style="font-size:11px;color:var(--text3);margin-top:10px;">Bond target is in &#8377; Crore (e.g. 2 = &#8377;2 Crore = &#8377;200L). Persists in browser.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+var MONTHS=['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+var FULL=['','January','February','March','April','May','June','July','August','September','October','November','December'];
+var COLORS={'Mutual funds':'#378ADD','Savings bank':'#888780','Aionion stocks':'#D85A30','Aionion bonds':'#1D9E75','Zerodha stocks':'#7F77DD','Tiger US stocks':'#BA7517'};
+
+// ── TARGETS (bond target now in Crore) ───────────────────────────────────────
+// bondTarget stored as Crore (e.g. 2 = ₹2 Cr = 200L)
+var TDEFS={bondTarget:2,incomeTarget:150000,expenses:120000,bondYield:9,fiMonth:7,fiYear:2031,eqCAGR:12,indiaReturn:2031,monthlySavings:100000,monthlyBond:50000};
+var T=JSON.parse(JSON.stringify(TDEFS));
+function loadTargets(){
+  try{var s=localStorage.getItem('viv_targets_v3');if(s)Object.assign(T,JSON.parse(s));}catch(e){}
+  document.getElementById('t-bond-target').value=T.bondTarget;
+  document.getElementById('t-income-target').value=T.incomeTarget;
+  document.getElementById('t-expenses').value=T.expenses;
+  document.getElementById('t-bond-yield').value=T.bondYield;
+  document.getElementById('t-fi-month').value=T.fiMonth;
+  document.getElementById('t-fi-year').value=T.fiYear;
+  document.getElementById('t-eq-cagr').value=T.eqCAGR;
+  document.getElementById('t-india-return').value=T.indiaReturn;
+  document.getElementById('t-monthly-savings').value=T.monthlySavings;
+  document.getElementById('t-monthly-bond').value=T.monthlyBond;
+}
+function saveTargets(){
+  T.bondTarget=parseFloat(document.getElementById('t-bond-target').value)||2;
+  T.incomeTarget=parseFloat(document.getElementById('t-income-target').value)||150000;
+  T.expenses=parseFloat(document.getElementById('t-expenses').value)||120000;
+  T.bondYield=parseFloat(document.getElementById('t-bond-yield').value)||9;
+  T.fiMonth=parseInt(document.getElementById('t-fi-month').value)||7;
+  T.fiYear=parseInt(document.getElementById('t-fi-year').value)||2031;
+  T.eqCAGR=parseFloat(document.getElementById('t-eq-cagr').value)||12;
+  T.indiaReturn=parseInt(document.getElementById('t-india-return').value)||2031;
+  T.monthlySavings=parseFloat(document.getElementById('t-monthly-savings').value)||100000;
+  T.monthlyBond=parseFloat(document.getElementById('t-monthly-bond').value)||50000;
+  try{localStorage.setItem('viv_targets_v3',JSON.stringify(T));}catch(e){}
+}
+// bondTargetL returns target in Lakhs (compatible with existing code)
+function bondTargetL(){return T.bondTarget*100;}
+function applyTargets(){
+  saveTargets();
+  ['dashboard','history','chart','fi','bonds','stocks','milestones','insights'].forEach(function(n){
+    if(document.getElementById('tab-'+n).classList.contains('active'))showTab(n);
+  });
+  var toast=document.createElement('div');
+  toast.style.cssText='position:fixed;bottom:24px;right:24px;background:#1D9E75;color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,0.15)';
+  toast.textContent='\u2713 Targets saved & applied';
+  document.body.appendChild(toast);
+  setTimeout(function(){toast.remove();},2500);
+}
+function resetTargets(){T=JSON.parse(JSON.stringify(TDEFS));loadTargets();try{localStorage.removeItem('viv_targets_v3');}catch(e){}}
+
+// ── HELPERS ──────────────────────────────────────────────────────────────────
+function fmtL(v){return(Math.round(v*100)/100).toFixed(2)+'L';}
+function fmtCr(v){
+  if(Math.abs(v)>=100)return(v/100).toFixed(2)+'\u00A0Cr';
+  return(Math.round(v*100)/100).toFixed(2)+'L';
+}
+// Always show in Crore, used for bond corpus display
+function fmtCrAlways(v){return(v/100).toFixed(2)+'\u00A0Cr';}
+function calcTotal(e){return(e.mf||0)+(e.savings||0)+(e.aistock||0)+getBondTotal(e)+(e.zerodha||0)+(e.tigerInr||0);}
+function getBondTotal(e){
+  if(e.tranches&&e.tranches.length)return e.tranches.reduce(function(s,t){return s+(t.amount||0);},0);
+  return(e.bond1||0)+(e.bond2||0);
+}
+function getBondIncome(e){
+  if(e.tranches&&e.tranches.length)return e.tranches.reduce(function(s,t){return s+(t.amount||0)*(t.yield||0)/100/12;},0);
+  return getBondTotal(e)*T.bondYield/100/12;
+}
+function getLegacyBonds(e){return e.legacy&&e.legacy.chola_bond?e.legacy.chola_bond:0;}
+function getTotal(e){if(e.legacyTotal&&e.legacyTotal>0)return e.legacyTotal;return calcTotal(e);}
+function getLongTermStocks(e){return(e.aistock||0)+(e.zerodha||0)+(e.mf||0);}
+function getPureStocks(e){
+  if(e.legacy&&(e.legacy.upstox||e.legacy.chola_stock))return(e.legacy.upstox||0)+(e.legacy.chola_stock||0);
+  return(e.aistock||0)+(e.zerodha||0);
+}
+function getStocksWithMF(e){
+  if(e.legacy&&(e.legacy.upstox||e.legacy.chola_stock))return(e.legacy.upstox||0)+(e.legacy.chola_stock||0)+(e.mf||0);
+  return(e.aistock||0)+(e.zerodha||0)+(e.mf||0);
+}
+function mkey(m,y){return y*100+m;}
+function calcCAGR(start,end,months){
+  if(!start||!end||months<1||end<=0||start<=0)return null;
+  return((Math.pow(end/start,1/(months/12))-1)*100);
+}
+function fmtCAGR(v){if(v===null)return'\u2014';return v.toFixed(1)+'%';}
+
+// ── BOND TRANCHES ─────────────────────────────────────────────────────────────
+var bondTranches=[];
+function renderBondTranches(){
+  var el=document.getElementById('bond-tranches');
+  if(!bondTranches.length){el.innerHTML='<div style="font-size:12px;color:var(--text3);margin-bottom:8px">No tranches yet.</div>';return;}
+  el.innerHTML=bondTranches.map(function(t,i){
+    return '<div style="display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:8px;align-items:end;margin-bottom:8px;">'
+      +'<div class="form-group"><label>Label</label><input type="text" value="'+t.label+'" placeholder="Bond name" oninput="updateTranche('+i+',\'label\',this.value)"></div>'
+      +'<div class="form-group"><label>Amount (&#8377;L)</label><input type="number" value="'+(t.amount||'')+'" step="0.01" placeholder="e.g. 20" oninput="updateTranche('+i+',\'amount\',parseFloat(this.value)||0);onFormChange()"></div>'
+      +'<div class="form-group"><label>Yield (% p.a.)</label><input type="number" value="'+(t.yield||'')+'" step="0.1" placeholder="e.g. 10.5" oninput="updateTranche('+i+',\'yield\',parseFloat(this.value)||0);onFormChange()"></div>'
+      +'<div class="form-group"><label>&nbsp;</label><button class="btn sm danger" onclick="removeTranche('+i+')">&#10005;</button></div>'
+      +'</div>';
+  }).join('');
+}
+function addBondTranche(){bondTranches.push({label:'',amount:0,yield:0});renderBondTranches();}
+function updateTranche(i,field,val){if(bondTranches[i])bondTranches[i][field]=val;}
+function removeTranche(i){bondTranches.splice(i,1);renderBondTranches();onFormChange();}
+
+// ── SEED DATA ─────────────────────────────────────────────────────────────────
+var SEED=[
+  {month:7,year:2022,usdRate:80,mf:1.8,savings:0,aistock:0,bond1:0,bond2:0,tranches:[],zerodha:2.05,tigerUsd:0,tigerInr:0,crypto:0,notes:'Start of journey',legacy:{upstox:14.05,chola_stock:1.7,chola_bond:0},legacyTotal:19.60},
+  {month:8,year:2022,usdRate:80,mf:1.95,savings:0,aistock:0,bond1:0,bond2:0,tranches:[],zerodha:2.17,tigerUsd:0,tigerInr:0,crypto:0,notes:'',legacy:{upstox:14.23,chola_stock:1.8,chola_bond:0},legacyTotal:20.15},
+  {month:9,year:2022,usdRate:80,mf:2.15,savings:0,aistock:0,bond1:0,bond2:0,tranches:[],zerodha:2.17,tigerUsd:0,tigerInr:0,crypto:0,notes:'Added 5L to Upstox',legacy:{upstox:19.30,chola_stock:1.9,chola_bond:0},legacyTotal:25.52},
+  {month:10,year:2022,usdRate:80,mf:2.35,savings:0,aistock:0,bond1:0,bond2:0,tranches:[],zerodha:2.20,tigerUsd:0,tigerInr:0,crypto:0,notes:'',legacy:{upstox:19.36,chola_stock:2.0,chola_bond:0},legacyTotal:25.91},
+  {month:11,year:2022,usdRate:80,mf:2.55,savings:0,aistock:0,bond1:0,bond2:0,tranches:[],zerodha:2.3,tigerUsd:0,tigerInr:0,crypto:0,notes:'',legacy:{upstox:16.80,chola_stock:2.1,chola_bond:0},legacyTotal:23.75},
+  {month:12,year:2022,usdRate:80,mf:2.75,savings:0,aistock:0,bond1:0,bond2:0,tranches:[],zerodha:2.4,tigerUsd:0,tigerInr:0,crypto:0,notes:'',legacy:{upstox:16.80,chola_stock:2.35,chola_bond:0},legacyTotal:24.30},
+  {month:1,year:2023,usdRate:82,mf:2.95,savings:0,aistock:0,bond1:0,bond2:0,tranches:[],zerodha:2.4,tigerUsd:0,tigerInr:0,crypto:0,notes:'',legacy:{upstox:16.80,chola_stock:2.65,chola_bond:0},legacyTotal:25.20},
+  {month:2,year:2023,usdRate:82,mf:3.15,savings:0,aistock:0,bond1:0,bond2:0,tranches:[],zerodha:1.94,tigerUsd:0,tigerInr:0,crypto:0,notes:'',legacy:{upstox:16.80,chola_stock:2.80,chola_bond:0},legacyTotal:25.49},
+  {month:3,year:2023,usdRate:82,mf:3.65,savings:0,aistock:0,bond1:0,bond2:0,tranches:[],zerodha:1.94,tigerUsd:0,tigerInr:0,crypto:0,notes:'',legacy:{upstox:17.05,chola_stock:3.05,chola_bond:0},legacyTotal:25.69},
+  {month:4,year:2023,usdRate:82,mf:4.0,savings:0,aistock:0,bond1:0,bond2:0,tranches:[],zerodha:2.05,tigerUsd:0,tigerInr:0,crypto:0,notes:'',legacy:{upstox:17.18,chola_stock:3.60,chola_bond:0},legacyTotal:26.83},
+  {month:5,year:2023,usdRate:82,mf:4.42,savings:0,aistock:0,bond1:0,bond2:0,tranches:[],zerodha:2.40,tigerUsd:0,tigerInr:0,crypto:0,notes:'',legacy:{upstox:17.18,chola_stock:3.95,chola_bond:0},legacyTotal:27.95},
+  {month:6,year:2023,usdRate:82,mf:4.82,savings:0,aistock:0,bond1:0,bond2:0,tranches:[],zerodha:2.6,tigerUsd:0,tigerInr:0,crypto:0,notes:'First bond — Chola 10L',legacy:{upstox:18.24,chola_stock:4.5,chola_bond:10},legacyTotal:40.16},
+  {month:7,year:2023,usdRate:82,mf:5.22,savings:0,aistock:0,bond1:0,bond2:0,tranches:[],zerodha:2.66,tigerUsd:0,tigerInr:0,crypto:0,notes:'',legacy:{upstox:18.24,chola_stock:4.5,chola_bond:10},legacyTotal:40.62},
+  {month:8,year:2023,usdRate:82,mf:5.22,savings:0,aistock:0,bond1:0,bond2:0,tranches:[],zerodha:1.64,tigerUsd:0,tigerInr:0,crypto:0,notes:'Gold purchase $5300',legacy:{upstox:19.33,chola_stock:4.5,chola_bond:10},legacyTotal:40.69},
+  {month:9,year:2023,usdRate:83,mf:5.62,savings:0,aistock:0,bond1:0,bond2:0,tranches:[],zerodha:1.19,tigerUsd:0,tigerInr:0,crypto:0,notes:'Loss 45k in futures',legacy:{upstox:19.155,chola_stock:5.45,chola_bond:10},legacyTotal:41.415},
+  {month:10,year:2023,usdRate:83,mf:6.05,savings:0,aistock:0,bond1:0,bond2:0,tranches:[],zerodha:1.02,tigerUsd:0,tigerInr:0,crypto:0,notes:'',legacy:{upstox:22.24,chola_stock:5.98,chola_bond:10},legacyTotal:45.29},
+  {month:11,year:2023,usdRate:83,mf:6.45,savings:0,aistock:0,bond1:0,bond2:0,tranches:[],zerodha:0,tigerUsd:0,tigerInr:0,crypto:0,notes:'Zerodha cleared',legacy:{upstox:23.71,chola_stock:6.423,chola_bond:10},legacyTotal:46.583},
+  {month:12,year:2023,usdRate:83,mf:6.45,savings:0,aistock:0,bond1:0,bond2:0,tranches:[],zerodha:0,tigerUsd:0,tigerInr:0,crypto:0,notes:'Chola bond doubled to 20L',legacy:{upstox:23.89,chola_stock:6.97,chola_bond:20},legacyTotal:57.31},
+  {month:1,year:2024,usdRate:83,mf:6.45,savings:0,aistock:0,bond1:0,bond2:0,tranches:[],zerodha:0,tigerUsd:0,tigerInr:0,crypto:0,notes:'',legacy:{upstox:24.37,chola_stock:7.95,chola_bond:20},legacyTotal:58.77},
+  {month:2,year:2024,usdRate:83,mf:6.85,savings:0,aistock:0,bond1:0,bond2:0,tranches:[],zerodha:2.0,tigerUsd:0,tigerInr:0,crypto:0,notes:'',legacy:{upstox:25.47,chola_stock:8.98,chola_bond:20},legacyTotal:63.30},
+  {month:3,year:2024,usdRate:83,mf:7.25,savings:0,aistock:0,bond1:0,bond2:0,tranches:[],zerodha:0.34,tigerUsd:0,tigerInr:0,crypto:0,notes:'',legacy:{upstox:27.83,chola_stock:11.08,chola_bond:20},legacyTotal:66.50},
+  {month:4,year:2024,usdRate:83,mf:7.65,savings:0,aistock:0,bond1:0,bond2:0,tranches:[],zerodha:0,tigerUsd:0,tigerInr:0,crypto:0,notes:'',legacy:{upstox:28.01,chola_stock:11.72,chola_bond:20},legacyTotal:67.38},
+  {month:5,year:2024,usdRate:84,mf:7.65,savings:0,aistock:0,bond1:0,bond2:0,tranches:[],zerodha:8.0,tigerUsd:0,tigerInr:0,crypto:0,notes:'IDFC account freeze',legacy:{upstox:31.30,chola_stock:12.56,chola_bond:20},legacyTotal:79.51},
+  {month:6,year:2024,usdRate:84,mf:8.07,savings:0,aistock:0,bond1:0,bond2:0,tranches:[],zerodha:8.7,tigerUsd:0,tigerInr:0,crypto:0,notes:'',legacy:{upstox:32.47,chola_stock:14.14,chola_bond:20},legacyTotal:83.38},
+  {month:7,year:2024,usdRate:84,mf:8.48,savings:0,aistock:0,bond1:0,bond2:0,tranches:[],zerodha:11.0,tigerUsd:0,tigerInr:0,crypto:0,notes:'',legacy:{upstox:34.43,chola_stock:14.54,chola_bond:20},legacyTotal:88.45},
+  {month:8,year:2024,usdRate:84,mf:8.91,savings:0,aistock:0,bond1:0,bond2:0,tranches:[],zerodha:10.66,tigerUsd:0,tigerInr:0,crypto:0,notes:'',legacy:{upstox:36.45,chola_stock:15.74,chola_bond:20},legacyTotal:91.76},
+  {month:9,year:2024,usdRate:84,mf:9.4,savings:0,aistock:0,bond1:0,bond2:0,tranches:[],zerodha:11.42,tigerUsd:0,tigerInr:0,crypto:0,notes:'',legacy:{upstox:40.26,chola_stock:16.32,chola_bond:20},legacyTotal:97.40},
+  {month:10,year:2024,usdRate:84,mf:9.9,savings:0,aistock:0,bond1:0,bond2:0,tranches:[],zerodha:10.0,tigerUsd:0,tigerInr:0,crypto:0,notes:'',legacy:{upstox:41.45,chola_stock:16.32,chola_bond:20},legacyTotal:97.67},
+  {month:11,year:2024,usdRate:84,mf:10.4,savings:0,aistock:0,bond1:0,bond2:0,tranches:[],zerodha:0.6,tigerUsd:608,tigerInr:0.51,crypto:0,notes:'Crossed 1 Crore! Chola bond 80L. Tiger started.',legacy:{upstox:0,chola_stock:17.28,chola_bond:80},legacyTotal:108.79},
+  {month:12,year:2024,usdRate:84.5,mf:10.9,savings:0,aistock:0,bond1:0,bond2:0,tranches:[],zerodha:1.11,tigerUsd:1495,tigerInr:1.27,crypto:0,notes:'Tiger 1495$',legacy:{upstox:0,chola_stock:18.60,chola_bond:80},legacyTotal:111.88},
+  {month:1,year:2025,usdRate:86.5,mf:11.41,savings:0,aistock:0,bond1:0,bond2:0,tranches:[],zerodha:1.40,tigerUsd:1679,tigerInr:1.45,crypto:120,notes:'Coinbase started',legacy:{upstox:0,chola_stock:18.92,chola_bond:80},legacyTotal:113.18},
+  {month:2,year:2025,usdRate:86.7,mf:11.97,savings:0,aistock:0,bond1:0,bond2:0,tranches:[],zerodha:2.03,tigerUsd:2119,tigerInr:1.84,crypto:140,notes:'',legacy:{upstox:0,chola_stock:20.0,chola_bond:80},legacyTotal:115.84},
+  {month:3,year:2025,usdRate:87.3,mf:12.46,savings:0,aistock:0.20,bond1:0,bond2:0,tranches:[],zerodha:2.40,tigerUsd:2638,tigerInr:2.30,crypto:160,notes:'Aionion started 20k',legacy:{upstox:0,chola_stock:20.60,chola_bond:80},legacyTotal:117.96},
+  {month:4,year:2025,usdRate:85.5,mf:12.96,savings:0,aistock:0.46,bond1:0,bond2:0,tranches:[],zerodha:2.96,tigerUsd:3745,tigerInr:3.20,crypto:200,notes:'',legacy:{upstox:0,chola_stock:20.90,chola_bond:80},legacyTotal:120.48},
+  {month:5,year:2025,usdRate:84.6,mf:13.46,savings:0,aistock:1.63,bond1:0,bond2:0,tranches:[],zerodha:8.39,tigerUsd:7038,tigerInr:5.95,crypto:240,notes:'Zerodha surge',legacy:{upstox:0,chola_stock:20.88,chola_bond:80},legacyTotal:130.31},
+  {month:6,year:2025,usdRate:85.7,mf:13.96,savings:0,aistock:2.0,bond1:0,bond2:0,tranches:[],zerodha:8.66,tigerUsd:8265,tigerInr:7.08,crypto:300,notes:'Tiger 8265$',legacy:{upstox:0,chola_stock:20.88,chola_bond:80},legacyTotal:132.58},
+  {month:7,year:2025,usdRate:86.5,mf:14.46,savings:0,aistock:24.0,bond1:90,bond2:0,tranches:[{label:'Aionion bonds',amount:90,yield:9}],zerodha:9.0,tigerUsd:9040,tigerInr:7.82,crypto:350,notes:'Chola closed, moved to Aionion. Bonds 90L.',legacy:{upstox:0,chola_stock:0,chola_bond:0},legacyTotal:0},
+  {month:8,year:2025,usdRate:86.5,mf:15.0,savings:0.64,aistock:25.30,bond1:90,bond2:0,tranches:[{label:'Aionion bonds',amount:90,yield:9}],zerodha:9.10,tigerUsd:9612,tigerInr:8.40,crypto:360,notes:'Savings 64k. Tiger 9612$',legacy:{upstox:0,chola_stock:0,chola_bond:0},legacyTotal:0},
+  {month:9,year:2025,usdRate:88.1,mf:15.50,savings:0,aistock:25.70,bond1:93,bond2:0,tranches:[{label:'Aionion bonds',amount:93,yield:9}],zerodha:9.10,tigerUsd:10270,tigerInr:9.05,crypto:380,notes:'Bonds 93L. Tiger 10270$',legacy:{upstox:0,chola_stock:0,chola_bond:0},legacyTotal:0},
+  {month:10,year:2025,usdRate:88.6,mf:15.74,savings:0,aistock:26.78,bond1:98,bond2:0,tranches:[{label:'Aionion bonds',amount:98,yield:9}],zerodha:9.30,tigerUsd:11870,tigerInr:10.52,crypto:410,notes:'Bonds 98L. Tiger 11870$',legacy:{upstox:0,chola_stock:0,chola_bond:0},legacyTotal:0},
+  {month:11,year:2025,usdRate:89.4,mf:16.0,savings:0,aistock:28.10,bond1:99,bond2:0,tranches:[{label:'Aionion bonds',amount:99,yield:9}],zerodha:9.20,tigerUsd:16480,tigerInr:14.73,crypto:420,notes:'Tiger 16480$. Bonds 99L.',legacy:{upstox:0,chola_stock:0,chola_bond:0},legacyTotal:0},
+  {month:12,year:2025,usdRate:89.8,mf:16.25,savings:0,aistock:29.0,bond1:80,bond2:20,tranches:[{label:'Aionion part 1',amount:80,yield:9},{label:'Aionion part 2',amount:20,yield:9}],zerodha:9.25,tigerUsd:17252,tigerInr:15.50,crypto:430,notes:'Bonds 80L+20L = 1 Cr',legacy:{upstox:0,chola_stock:0,chola_bond:0},legacyTotal:0},
+  {month:1,year:2026,usdRate:91.5,mf:12.96,savings:1.40,aistock:31.31,bond1:80,bond2:20,tranches:[{label:'Aionion part 1',amount:80,yield:9},{label:'Aionion part 2',amount:20,yield:9}],zerodha:12.0,tigerUsd:17850,tigerInr:16.37,crypto:540,notes:'',legacy:{upstox:0,chola_stock:0,chola_bond:0},legacyTotal:0},
+  {month:2,year:2026,usdRate:91.0,mf:13.26,savings:0,aistock:33.80,bond1:82,bond2:20,tranches:[{label:'Aionion part 1',amount:82,yield:9},{label:'Aionion part 2',amount:20,yield:9}],zerodha:12.85,tigerUsd:18800,tigerInr:17.10,crypto:540,notes:'Aionion 6.30L+27.50L. Bonds 82L+20L=1.02Cr.',legacy:{upstox:0,chola_stock:0,chola_bond:0},legacyTotal:0}
+];
+
+var data=[];
+function initData(){
+  try{var s=localStorage.getItem('viv_v8');if(s){data=JSON.parse(s);if(data.length>0){updateBadge();return;}}}catch(ex){}
+  data=SEED.map(function(d){return JSON.parse(JSON.stringify(d));});
+  persist();updateBadge();
+}
+function persist(){try{localStorage.setItem('viv_v8',JSON.stringify(data));}catch(ex){}}
+function updateBadge(){
+  var sorted=data.slice().sort(function(a,b){return mkey(a.month,a.year)-mkey(b.month,b.year);});
+  if(!sorted.length)return;
+  var first=sorted[0],last=sorted[sorted.length-1];
+  var growth=((getTotal(last)-getTotal(first))/getTotal(first)*100).toFixed(0);
+  document.getElementById('journey-badge').textContent=sorted.length+' months \u00B7 '+growth+'% growth';
+}
+
+function showTab(name){
+  var names=['dashboard','history','entry','chart','fi','bonds','stocks','milestones','insights','targets'];
+  document.querySelectorAll('.tab').forEach(function(t,i){t.classList.toggle('active',names[i]===name);});
+  document.querySelectorAll('.section').forEach(function(s){s.classList.remove('active');});
+  document.getElementById('tab-'+name).classList.add('active');
+  if(name==='dashboard')renderDashboard();
+  if(name==='history')renderHistory();
+  if(name==='chart')renderChart();
+  if(name==='fi')renderFI();
+  if(name==='bonds')renderBonds();
+  if(name==='stocks')renderStocks();
+  if(name==='milestones')renderMilestones();
+  if(name==='insights')renderInsights();
+  if(name==='entry')onFormChange();
+}
+
+// ── FORM ──────────────────────────────────────────────────────────────────────
+var _lastFormMonth=null,_lastFormYear=null;
+function carryForwardBonds(month,year){
+  var existing=data.find(function(d){return d.month===month&&d.year===year;});if(existing)return;
+  if(bondTranches.length>0)return;
+  var sorted=data.slice().sort(function(a,b){return mkey(b.month,b.year)-mkey(a.month,a.year);});
+  var prev=sorted.find(function(e){return mkey(e.month,e.year)<mkey(month,year)&&e.tranches&&e.tranches.length>0;});
+  if(!prev||!prev.tranches||!prev.tranches.length)return;
+  bondTranches=prev.tranches.map(function(t){return{label:t.label,amount:t.amount,yield:t.yield};});
+  renderBondTranches();
+  var hint=document.getElementById('bond-carryover-hint');
+  if(hint){hint.style.display='block';hint.textContent='\u21B3 Carried from '+MONTHS[prev.month]+' '+prev.year+'. Edit amounts or add new tranches below.';}
+}
+function onFormChange(){
+  var month=parseInt(document.getElementById('f-month').value);
+  var year=parseInt(document.getElementById('f-year').value)||2026;
+  if(month!==_lastFormMonth||year!==_lastFormYear){_lastFormMonth=month;_lastFormYear=year;carryForwardBonds(month,year);}
+  var usdRate=parseFloat(document.getElementById('f-usdrate').value)||0;
+  var tigerUsd=parseFloat(document.getElementById('f-tiger-usd').value)||0;
+  var tigerInr=tigerUsd&&usdRate?tigerUsd*usdRate/100000:0;
+  var mf=parseFloat(document.getElementById('f-mf').value)||0;
+  var savings=parseFloat(document.getElementById('f-savings').value)||0;
+  var aistock=parseFloat(document.getElementById('f-aistock').value)||0;
+  var zerodha=parseFloat(document.getElementById('f-zerodha').value)||0;
+  var crypto=parseFloat(document.getElementById('f-crypto').value)||0;
+  var bondTotal=bondTranches.reduce(function(s,t){return s+(t.amount||0);},0);
+  var bondIncome=bondTranches.reduce(function(s,t){return s+(t.amount||0)*(t.yield||0)/100/12;},0);
+  var total=mf+savings+aistock+bondTotal+zerodha+tigerInr;
+  var sorted=data.slice().sort(function(a,b){return mkey(a.month,a.year)-mkey(b.month,b.year);});
+  var prev=sorted.filter(function(e){return mkey(e.month,e.year)<mkey(month,year);}).slice(-1)[0];
+  var prevTotal=prev?getTotal(prev):null;
+  var diff=prevTotal!==null?total-prevTotal:null;
+  var pct=prevTotal?diff/prevTotal*100:null;
+  document.getElementById('live-total').textContent=total>0?'\u20B9'+fmtCr(total):'\u20B90';
+  var de=document.getElementById('live-diff'),ae=document.getElementById('live-diff-abs');
+  if(diff!==null&&total>0){de.className=diff>=0?'live-diff-pos':'live-diff-neg';de.textContent=(diff>=0?'+':'')+pct.toFixed(1)+'%';ae.textContent=(diff>=0?'+':'')+fmtL(diff)+' vs '+MONTHS[prev.month]+' '+prev.year;}
+  else{de.textContent='';ae.textContent='';}
+  var bd=document.getElementById('live-breakdown');
+  bd.innerHTML=[{l:'MF',v:mf},{l:'Stocks',v:aistock+zerodha},{l:'Bonds',v:bondTotal},{l:'Savings',v:savings},{l:'Tiger*',v:tigerInr}].filter(function(p){return p.v>0;}).map(function(p){return '<div class="lbi">'+p.l+'<span>'+fmtL(p.v)+'</span></div>';}).join('');
+  if(bondTotal>0&&bondIncome>0)bd.innerHTML+='<div class="lbi">Passive/mo<span style="color:var(--green)">\u20B9'+fmtL(bondIncome)+'</span></div>';
+  if(crypto)bd.innerHTML+='<div class="lbi">Crypto<span>S$'+crypto+'</span></div>';
+}
+function saveEntry(){
+  var month=parseInt(document.getElementById('f-month').value);
+  var year=parseInt(document.getElementById('f-year').value);
+  var usdRate=parseFloat(document.getElementById('f-usdrate').value)||87;
+  var tigerUsd=parseFloat(document.getElementById('f-tiger-usd').value)||0;
+  var tranches=bondTranches.map(function(t){return{label:t.label,amount:t.amount||0,yield:t.yield||0};});
+  var bondTotal=tranches.reduce(function(s,t){return s+(t.amount||0);},0);
+  var entry={month:month,year:year,usdRate:usdRate,
+    mf:parseFloat(document.getElementById('f-mf').value)||0,
+    savings:parseFloat(document.getElementById('f-savings').value)||0,
+    aistock:parseFloat(document.getElementById('f-aistock').value)||0,
+    bond1:bondTotal,bond2:0,tranches:tranches,
+    zerodha:parseFloat(document.getElementById('f-zerodha').value)||0,
+    tigerUsd:tigerUsd,tigerInr:tigerUsd?parseFloat((tigerUsd*usdRate/100000).toFixed(2)):0,
+    crypto:parseFloat(document.getElementById('f-crypto').value)||0,
+    notes:document.getElementById('f-notes').value.trim(),
+    legacy:{upstox:0,chola_stock:0,chola_bond:0},legacyTotal:0};
+  var idx=data.findIndex(function(d){return d.month===month&&d.year===year;});
+  if(idx>=0)data[idx]=entry;else data.push(entry);
+  persist();updateBadge();
+  var msg=document.getElementById('form-msg');
+  msg.textContent='Saved '+FULL[month]+' '+year+'. Total: \u20B9'+fmtCr(calcTotal(entry));
+  setTimeout(function(){msg.textContent='';},4000);
+}
+function clearForm(){
+  ['f-mf','f-savings','f-aistock','f-zerodha','f-tiger-usd','f-crypto','f-notes'].forEach(function(id){document.getElementById(id).value='';});
+  bondTranches=[];renderBondTranches();_lastFormMonth=null;_lastFormYear=null;
+  var hint=document.getElementById('bond-carryover-hint');if(hint)hint.style.display='none';
+  document.getElementById('form-msg').textContent='';onFormChange();
+}
+function editEntry(month,year){
+  var e=data.find(function(d){return d.month===month&&d.year===year;});if(!e)return;
+  document.getElementById('f-month').value=month;document.getElementById('f-year').value=year;
+  document.getElementById('f-usdrate').value=e.usdRate||87;document.getElementById('f-mf').value=e.mf||'';
+  document.getElementById('f-savings').value=e.savings||'';document.getElementById('f-aistock').value=e.aistock||'';
+  document.getElementById('f-zerodha').value=e.zerodha||'';document.getElementById('f-tiger-usd').value=e.tigerUsd||'';
+  document.getElementById('f-crypto').value=e.crypto||'';document.getElementById('f-notes').value=e.notes||'';
+  bondTranches=(e.tranches&&e.tranches.length)?e.tranches.map(function(t){return{label:t.label,amount:t.amount,yield:t.yield};}):[];
+  if(!bondTranches.length&&((e.bond1||0)+(e.bond2||0))>0){
+    bondTranches.push({label:'Bonds',amount:(e.bond1||0)+(e.bond2||0),yield:9});
+  }
+  renderBondTranches();_lastFormMonth=month;_lastFormYear=year;
+  var hint=document.getElementById('bond-carryover-hint');if(hint)hint.style.display='none';
+  showTab('entry');onFormChange();
+}
+function deleteEntry(month,year){
+  if(!confirm('Delete '+FULL[month]+' '+year+'?'))return;
+  data=data.filter(function(d){return!(d.month===month&&d.year===year);});
+  persist();updateBadge();renderHistory();
+}
+
+// ── DASHBOARD ─────────────────────────────────────────────────────────────────
+function renderDashboard(){
+  var el=document.getElementById('dashboard-content');
+  if(!data.length){el.innerHTML='<div class="empty">No data yet.</div>';return;}
+  var sorted=data.slice().sort(function(a,b){return mkey(a.month,a.year)-mkey(b.month,b.year);});
+  var latest=sorted[sorted.length-1],prev=sorted.length>1?sorted[sorted.length-2]:null;
+  var total=getTotal(latest),prevTotal=prev?getTotal(prev):null;
+  var diff=prevTotal?total-prevTotal:null,pct=prevTotal?diff/prevTotal*100:null;
+  var first=sorted[0];
+  var bonds=getBondTotal(latest),passive=getBondIncome(latest),longStocks=getLongTermStocks(latest);
+  var bTarget=bondTargetL();
+  var bondPct=Math.min(100,bonds/bTarget*100);
+  var milestoneAmts=[25,50,75,100,125,150,175,200,250,300,500];
+  var nextM=milestoneAmts.find(function(m){return m>total;})||999;
+  var prevM=milestoneAmts.slice().reverse().find(function(m){return m<=total;})||0;
+  var mPct=prevM&&nextM<999?Math.min(100,(total-prevM)/(nextM-prevM)*100):100;
+  var cats=[
+    {label:'Mutual funds',val:latest.mf||0},{label:'Savings bank',val:latest.savings||0},
+    {label:'Aionion stocks',val:latest.aistock||0},{label:'Aionion bonds',val:bonds},
+    {label:'Zerodha stocks',val:latest.zerodha||0},{label:'Tiger US stocks',val:latest.tigerInr||0}
+  ].filter(function(c){return c.val>0;});
+  var maxV=cats.length?Math.max.apply(null,cats.map(function(c){return c.val;})):1;
+  var cagr=calcCAGR(getTotal(first),total,sorted.length);
+
+  el.innerHTML='<div class="month-header">As on '+FULL[latest.month]+' '+latest.year+' end</div>'
+  +'<div class="metric-grid">'
+  +'<div class="metric highlight"><div class="metric-label">Total portfolio</div><div class="metric-value">\u20B9'+fmtCr(total)+'</div><div class="metric-sub">\u20B9'+(total/100).toFixed(2)+' Crore</div></div>'
+  +(diff!==null?'<div class="metric '+(diff>=0?'positive':'negative')+'"><div class="metric-label">vs '+MONTHS[prev.month]+' '+prev.year+'</div><div class="metric-value">'+(diff>=0?'+':'')+fmtL(diff)+'</div><div class="metric-sub">'+(pct>=0?'+':'')+pct.toFixed(1)+'%</div></div>':'')
+  +'<div class="metric blue"><div class="metric-label">Bond corpus</div><div class="metric-value">'+fmtCrAlways(bonds)+'</div><div class="metric-sub">'+bondPct.toFixed(0)+'% of '+T.bondTarget+'\u00A0Cr target</div></div>'
+  +'<div class="metric positive"><div class="metric-label">Passive income now</div><div class="metric-value">\u20B9'+fmtL(passive)+'/mo</div><div class="metric-sub">Blended '+(bonds>0?(passive*12/bonds*100).toFixed(1):0)+'% p.a.</div></div>'
+  +'<div class="metric"><div class="metric-label">Long-term stocks</div><div class="metric-value">'+fmtCr(longStocks)+'</div><div class="metric-sub">Excl. Tiger US</div></div>'
+  +'<div class="metric"><div class="metric-label">Overall CAGR</div><div class="metric-value">'+(cagr!==null?cagr.toFixed(1)+'%':'\u2014')+'</div><div class="metric-sub">Since '+MONTHS[first.month]+' '+first.year+'</div></div>'
+  +'</div>'
+  +(nextM<999?'<div class="card"><div class="card-title">Next milestone \u2014 \u20B9'+nextM+'L</div>'
+  +'<div style="display:flex;justify-content:space-between;font-size:13px"><span style="font-weight:600">\u20B9'+fmtCr(total)+'<span style="color:var(--text2);font-weight:400"> of \u20B9'+nextM+'L</span></span><span style="font-weight:700;color:var(--blue)">'+mPct.toFixed(0)+'%</span></div>'
+  +'<div class="fi-bar-bg" style="height:12px;margin-top:8px"><div class="fi-bar-fill" style="width:'+mPct.toFixed(1)+'%;background:linear-gradient(90deg,var(--blue),var(--purple))"></div></div>'
+  +'<div style="font-size:12px;color:var(--text3);margin-top:6px">\u20B9'+fmtL(nextM-total)+' to go \u2014 roughly '+(diff&&diff>0?Math.ceil((nextM-total)/diff):'-')+' month(s) at current pace</div>'
+  +'</div>':'')
+  +'<div class="card"><div class="card-title">Allocation breakdown</div>'
+  +cats.map(function(c){return '<div class="growth-row"><span class="growth-label">'+c.label+'</span><div class="bar-bg"><div class="bar-fill" style="width:'+(c.val/maxV*100).toFixed(1)+'%;background:'+(COLORS[c.label]||'#888')+'"></div></div><span class="bar-val">'+fmtL(c.val)+'</span><span class="bar-pct">'+(c.val/total*100).toFixed(0)+'%</span></div>';}).join('')
+  +(latest.tigerInr?'<p class="tiger-note">\u26A0\uFE0F Tiger US \u20B9'+fmtL(latest.tigerInr)+' ($'+latest.tigerUsd.toLocaleString()+') \u2014 liquidate on return to India (FEMA/RBI). Excluded from long-term corpus.</p>':'')
+  +(latest.crypto?'<p class="crypto-note">Coinbase S$'+latest.crypto+' \u2014 tracked separately, not in total</p>':'')
+  +'</div>';
+}
+
+// ── HISTORY ───────────────────────────────────────────────────────────────────
+function renderHistory(){
+  var el=document.getElementById('history-content');
+  if(!data.length){el.innerHTML='<div class="empty">No entries yet.</div>';return;}
+  var sorted=data.slice().sort(function(a,b){return mkey(b.month,b.year)-mkey(a.month,a.year);});
+  var asc=data.slice().sort(function(a,b){return mkey(a.month,a.year)-mkey(b.month,b.year);});
+  var milestones=[25,50,75,100,125,150,175,200];
+  var reached={};
+  milestones.forEach(function(m){for(var i=0;i<asc.length;i++){if(getTotal(asc[i])>=m){reached[m]=mkey(asc[i].month,asc[i].year);break;}}});
+  var rows=sorted.map(function(e,i){
+    var total=getTotal(e),next=sorted[i+1],prevTotal=next?getTotal(next):null;
+    var diff=prevTotal?total-prevTotal:null,pct=prevTotal?diff/prevTotal*100:null;
+    var bonds=getBondTotal(e)||getLegacyBonds(e),passive=getBondIncome(e);
+    var tag='';milestones.forEach(function(m){if(reached[m]===mkey(e.month,e.year))tag+='<span class="milestone-tag">'+m+'L</span>';});
+    var notesCell=e.notes?'<br><span style="color:var(--text3);font-size:11px;white-space:normal">'+e.notes+'</span>':'';
+    return '<tr><td style="font-weight:600;min-width:90px">'+MONTHS[e.month]+' '+e.year+tag+notesCell+'</td>'
+      +'<td class="num">'+fmtL(e.mf||0)+'</td>'
+      +'<td class="num">'+fmtL(getPureStocks(e))+'</td>'
+      +'<td class="num">'+fmtCrAlways(bonds)+'</td>'
+      +'<td class="num">'+(passive>0?'<span class="badge green">\u20B9'+fmtL(passive)+'/mo</span>':'<span style="color:var(--text3);">\u2014</span>')+'</td>'
+      +'<td class="num" style="font-weight:700">\u20B9'+fmtCr(total)+'</td>'
+      +'<td class="num">'+(diff!==null?'<span class="badge '+(diff>=0?'green':'red')+'">'+(diff>=0?'+':'')+pct.toFixed(1)+'%</span><br><span style="font-size:11px;color:var(--text3)">'+(diff>=0?'+':'')+fmtL(diff)+'</span>':'<span class="badge gray">\u2014</span>')+'</td>'
+      +'<td><div class="tbl-actions"><button class="btn sm" onclick="editEntry('+e.month+','+e.year+')">Edit</button><button class="btn sm danger" onclick="deleteEntry('+e.month+','+e.year+')">Del</button></div></td></tr>';
+  }).join('');
+  el.innerHTML='<div class="section-note">Passive income shows blended yield from bond tranches (Jul 2025+). Bonds always shown in Crore.</div>'
+  +'<div class="table-wrap"><table><thead><tr><th>Month</th><th>MF</th><th>Stocks</th><th>Bonds</th><th>Passive/mo</th><th>Total</th><th>vs prev</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+}
+
+// ── CHART ─────────────────────────────────────────────────────────────────────
+var chartInst=null,chartInst2=null;
+function renderChart(){
+  var el=document.getElementById('chart-content');
+  var sorted=data.slice().sort(function(a,b){return mkey(a.month,a.year)-mkey(b.month,b.year);});
+  if(sorted.length<2){el.innerHTML='<div class="empty">Need at least 2 months.</div>';return;}
+  var labels=sorted.map(function(e){return MONTHS[e.month]+'\''+e.year.toString().slice(2);});
+  var totals=sorted.map(function(e){return parseFloat((getTotal(e)/100).toFixed(3));});
+  var bonds=sorted.map(function(e){return parseFloat(((getBondTotal(e)||getLegacyBonds(e))/100).toFixed(3));});
+  var passive=sorted.map(function(e){return Math.round(getBondIncome(e)*100000);});
+  var stocks=sorted.map(function(e){return parseFloat(getPureStocks(e).toFixed(2));});
+  var mf=sorted.map(function(e){return parseFloat((e.mf||0).toFixed(2));});
+  var first=getTotal(sorted[0]),last=getTotal(sorted[sorted.length-1]);
+  var cagr=calcCAGR(first,last,sorted.length);
+
+  el.innerHTML='<div class="metric-grid" style="margin-bottom:16px">'
+  +'<div class="metric"><div class="metric-label">Start (Jul 2022)</div><div class="metric-value">\u20B9'+fmtCr(first)+'</div></div>'
+  +'<div class="metric positive"><div class="metric-label">Latest</div><div class="metric-value">\u20B9'+fmtCr(last)+'</div></div>'
+  +'<div class="metric positive"><div class="metric-label">Total growth</div><div class="metric-value">+'+fmtL(last-first)+'</div><div class="metric-sub">~'+(cagr!==null?cagr.toFixed(1):'-')+'% CAGR</div></div>'
+  +'<div class="metric"><div class="metric-label">Months tracked</div><div class="metric-value">'+sorted.length+'</div></div>'
+  +'</div>'
+  +'<div class="card"><div class="legend"><div class="legend-item"><div class="legend-dot" style="background:#1D9E75"></div>Total (\u20B9Cr)</div>'
+  +'<div class="legend-item"><div class="legend-dot" style="background:#378ADD"></div>Bonds (\u20B9Cr)</div>'
+  +'<div class="legend-item"><div class="legend-dot" style="background:#D85A30"></div>Stocks excl. Tiger (\u20B9L)</div>'
+  +'<div class="legend-item"><div class="legend-dot" style="background:#7F77DD"></div>Mutual funds (\u20B9L)</div>'
+  +'</div><div class="chart-wrap"><canvas id="portfolioChart"></canvas></div></div>'
+  +'<div class="card"><div class="card-title">Monthly passive income growth (\u20B9/month)</div>'
+  +'<div class="chart-wrap"><canvas id="passiveChart"></canvas></div></div>';
+
+  setTimeout(function(){
+    if(chartInst){chartInst.destroy();chartInst=null;}
+    var ctx=document.getElementById('portfolioChart');if(!ctx)return;
+    chartInst=new Chart(ctx,{type:'line',data:{labels:labels,datasets:[
+      {label:'Total (Cr)',data:totals,borderColor:'#1D9E75',backgroundColor:'rgba(29,158,117,0.1)',fill:true,tension:0.3,yAxisID:'y1',pointRadius:2,borderWidth:2},
+      {label:'Bonds (Cr)',data:bonds,borderColor:'#378ADD',backgroundColor:'transparent',tension:0.3,yAxisID:'y1',pointRadius:2,borderWidth:1.5},
+      {label:'Stocks (L)',data:stocks,borderColor:'#D85A30',backgroundColor:'transparent',tension:0.3,yAxisID:'y2',pointRadius:2,borderWidth:1.5},
+      {label:'MF (L)',data:mf,borderColor:'#7F77DD',backgroundColor:'transparent',tension:0.3,yAxisID:'y2',pointRadius:2,borderWidth:1.5}
+    ]},options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{mode:'index',intersect:false}},
+      scales:{x:{ticks:{maxTicksLimit:20,font:{size:10}},grid:{display:false}},
+        y1:{type:'linear',position:'left',title:{display:true,text:'\u20B9 Crore',font:{size:11}}},
+        y2:{type:'linear',position:'right',title:{display:true,text:'\u20B9 Lakhs',font:{size:11}},grid:{display:false}}}}});
+    if(chartInst2){chartInst2.destroy();chartInst2=null;}
+    var ctx2=document.getElementById('passiveChart');if(!ctx2)return;
+    chartInst2=new Chart(ctx2,{type:'bar',data:{labels:labels,datasets:[
+      {label:'Passive income (\u20B9/mo)',data:passive,backgroundColor:'rgba(29,158,117,0.7)',borderRadius:3}
+    ]},options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return '\u20B9'+c.parsed.y.toLocaleString('en-IN')+'/mo';}}}},
+      scales:{x:{ticks:{maxTicksLimit:20,font:{size:10}},grid:{display:false}},
+        y:{title:{display:true,text:'\u20B9 per month',font:{size:11}},ticks:{callback:function(v){return '\u20B9'+v.toLocaleString();}}}}}});
+  },100);
+}
+
+// ── FI TRACKER ────────────────────────────────────────────────────────────────
+function renderFI(){
+  var el=document.getElementById('fi-content');
+  var sorted=data.slice().sort(function(a,b){return mkey(a.month,a.year)-mkey(b.month,b.year);});
+  if(!sorted.length){el.innerHTML='<div class="empty">No data yet.</div>';return;}
+  var latest=sorted[sorted.length-1];
+  var currentBonds=getBondTotal(latest);
+  var currentPassive=getBondIncome(latest);
+  var blendedYield=currentBonds>0?currentPassive*12/currentBonds*100:T.bondYield;
+  var bTarget=bondTargetL();
+  var passiveAtTarget=bTarget*blendedYield/100/12;
+  var bondPct=Math.min(100,currentBonds/bTarget*100);
+  var remaining=bTarget-currentBonds;
+  var withBonds=sorted.filter(function(e){return getBondTotal(e)>0;});
+  var bondGrowthPerMonth=withBonds.length>=2?getBondTotal(withBonds[withBonds.length-1])-getBondTotal(withBonds[withBonds.length-2]):0;
+  var monthsLeft=bondGrowthPerMonth>0?Math.ceil(remaining/bondGrowthPerMonth):null;
+  var etaStr='\u2014';
+  if(monthsLeft!==null&&monthsLeft>0){var d=new Date();d.setMonth(d.getMonth()+monthsLeft);etaStr=MONTHS[d.getMonth()+1]+' '+d.getFullYear();}
+  var longStocks=getLongTermStocks(latest);
+  var now=new Date();var fiDate=new Date(T.fiYear,T.fiMonth-1,1);
+  var msLeft=fiDate-now;
+  var daysLeft=Math.max(0,Math.floor(msLeft/86400000));
+  var monthsToFI=Math.max(0,Math.round(msLeft/(86400000*30.44)));
+  var yearsLeft=Math.floor(monthsToFI/12);
+  var remMonths=monthsToFI%12;
+  var currCoverage=(currentPassive*100000/T.expenses*100).toFixed(0);
+
+  var trancheRows='';
+  if(latest.tranches&&latest.tranches.length){
+    trancheRows=latest.tranches.map(function(t){
+      var mo=(t.amount||0)*(t.yield||0)/100/12;
+      return '<div class="bond-row"><span style="color:var(--text2)">'+(t.label||'Bond')+'</span>'
+        +'<div style="display:flex;align-items:center;gap:8px"><span style="font-weight:600">\u20B9'+fmtL(t.amount||0)+'</span>'
+        +'<span class="bond-yield-tag">'+(t.yield||0)+'%</span>'
+        +'<span style="color:var(--green);font-size:12px">= \u20B9'+fmtL(mo)+'/mo</span></div></div>';
+    }).join('');
+    trancheRows+='<div class="bond-row" style="background:var(--green-bg);margin:0 -20px;padding:10px 20px">'
+      +'<span style="font-weight:600;color:var(--green-text)">Total passive income</span>'
+      +'<span style="font-weight:700;font-size:16px;color:var(--green-text)">\u20B9'+fmtL(currentPassive)+'/mo <span class="income-pill">LIVE</span></span></div>';
+  }else{trancheRows='<div style="font-size:12px;color:var(--text3);padding:10px 0">No tranche data for this entry.</div>';}
+
+  el.innerHTML=
+  '<div class="fi-countdown"><div class="fi-count-title">&#9203; Countdown to FI \u2014 '+FULL[T.fiMonth]+' '+T.fiYear+'</div>'
+  +'<div class="fi-count-grid">'
+  +'<div class="fi-count-item"><div class="fi-count-num">'+yearsLeft+'</div><div class="fi-count-label">Years left</div></div>'
+  +'<div class="fi-count-item"><div class="fi-count-num">'+remMonths+'</div><div class="fi-count-label">Months</div></div>'
+  +'<div class="fi-count-item"><div class="fi-count-num">'+monthsToFI+'</div><div class="fi-count-label">Total months</div></div>'
+  +'<div class="fi-count-item"><div class="fi-count-num">'+daysLeft.toLocaleString('en-IN')+'</div><div class="fi-count-label">Days</div></div>'
+  +'</div><div style="font-size:11px;color:var(--green-text);margin-top:10px;opacity:0.8">FI date &amp; bond target editable in &#9881; Targets</div></div>'
+
+  +'<div class="fi-engine-box"><div class="fi-engine-title">&#128181; Passive income engine</div>'
+  +'<div class="fi-engine-row"><span class="fi-engine-label">Bond corpus</span><span class="fi-engine-value">'+fmtCrAlways(currentBonds)+'</span></div>'
+  +'<div class="fi-engine-row"><span class="fi-engine-label">Blended yield</span><span class="fi-engine-value">'+blendedYield.toFixed(2)+'% p.a.</span></div>'
+  +'<div class="fi-engine-divider"></div>'
+  +'<div class="fi-engine-row"><span class="fi-engine-label">Monthly passive income</span><span class="fi-engine-value">\u20B9'+fmtL(currentPassive)+'/mo</span></div>'
+  +'<div class="fi-engine-row"><span class="fi-engine-label">Covers expenses</span><span class="fi-engine-value">'+currCoverage+'% of \u20B9'+Math.round(T.expenses/1000)+'k target</span></div>'
+  +'<div class="fi-engine-divider"></div>'
+  +'<div class="fi-engine-row"><span class="fi-engine-label">Bond target</span><span class="fi-engine-value">\u20B9'+T.bondTarget+'\u00A0Cr</span></div>'
+  +'<div class="fi-engine-row"><span class="fi-engine-label">Projected income at target</span><span class="fi-engine-value">\u20B9'+fmtL(passiveAtTarget)+'/mo &#127919;</span></div>'
+  +'</div>'
+
+  +'<div class="card"><div class="card-title">Bond tranche breakdown</div>'+trancheRows+'</div>'
+
+  +'<div class="card"><div class="card-title">Progress to \u20B9'+T.bondTarget+'\u00A0Cr bond corpus</div>'
+  +'<div style="display:flex;justify-content:space-between;font-size:13px"><span style="font-weight:600">'+fmtCrAlways(currentBonds)+'<span style="font-weight:400;color:var(--text2)"> of \u20B9'+T.bondTarget+'\u00A0Cr</span></span><span style="font-weight:700;color:var(--green)">'+bondPct.toFixed(1)+'%</span></div>'
+  +'<div class="fi-bar-bg" style="height:16px;margin-top:8px"><div class="fi-bar-fill" style="width:'+bondPct.toFixed(1)+'%;background:linear-gradient(90deg,#1D9E75,#378ADD)"></div></div>'
+  +'<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-top:4px"><span>\u20B90</span><span>'+T.bondTarget/4+'\u00A0Cr</span><span>'+T.bondTarget/2+'\u00A0Cr</span><span>'+(T.bondTarget*3/4)+'\u00A0Cr</span><span>\u20B9'+T.bondTarget+'\u00A0Cr</span></div>'
+  +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:14px">'
+  +'<div class="metric"><div class="metric-label">Still needed</div><div class="metric-value">'+fmtCrAlways(remaining)+'</div></div>'
+  +(monthsLeft!==null&&monthsLeft>0?'<div class="metric positive"><div class="metric-label">ETA at current pace</div><div class="metric-value">'+etaStr+'</div><div class="metric-sub">'+Math.floor(monthsLeft/12)+'y '+monthsLeft%12+'m</div></div>':'')
+  +'<div class="metric"><div class="metric-label">Monthly needed to hit target</div><div class="metric-value">\u20B9'+fmtL(remaining/Math.max(1,monthsToFI))+'</div><div class="metric-sub">by '+MONTHS[T.fiMonth]+' '+T.fiYear+'</div></div>'
+  +'</div></div>'
+
+  +'<div class="card"><div class="card-title">&#127807; Long-term stock corpus (never sold)</div>'
+  +'<div class="metric-grid">'
+  +'<div class="metric"><div class="metric-label">Total excl. Tiger US</div><div class="metric-value">\u20B9'+fmtCr(longStocks)+'</div></div>'
+  +(latest.aistock?'<div class="metric"><div class="metric-label">Aionion stocks</div><div class="metric-value">\u20B9'+fmtL(latest.aistock)+'</div></div>':'')
+  +(latest.zerodha?'<div class="metric"><div class="metric-label">Zerodha stocks</div><div class="metric-value">\u20B9'+fmtL(latest.zerodha)+'</div></div>':'')
+  +(latest.mf?'<div class="metric"><div class="metric-label">Mutual funds</div><div class="metric-value">\u20B9'+fmtL(latest.mf)+'</div></div>':'')
+  +'</div>'
+  +(latest.tigerInr?'<div class="tiger-exclusion-note">&#9888;&#65039; Tiger US $'+latest.tigerUsd.toLocaleString()+' (\u20B9'+fmtL(latest.tigerInr)+') excluded from long-term corpus. Liquidate on India return (FEMA/RBI). Proceeds redeployed.</div>':'')
+  +'<div style="font-size:12px;color:var(--text3);margin-top:10px">At '+T.eqCAGR+'% CAGR: \u20B9'+fmtCr(longStocks)+' \u2192 \u20B9'+fmtCr(longStocks*Math.pow(1+T.eqCAGR/100,5))+' in 5 yrs \u00B7 \u20B9'+fmtCr(longStocks*Math.pow(1+T.eqCAGR/100,10))+' in 10 yrs</div>'
+  +'</div>';
+}
+
+// ── BONDS TAB (dedicated, always in Crore) ────────────────────────────────────
+function renderBonds(){
+  var el=document.getElementById('bonds-content');
+  var sorted=data.slice().sort(function(a,b){return mkey(a.month,a.year)-mkey(b.month,b.year);});
+  if(!sorted.length){el.innerHTML='<div class="empty">No data.</div>';return;}
+
+  var bTarget=bondTargetL();
+  var bondMilestones=[
+    {amt:10,label:'First Bond — FI engine ignited!'},{amt:50,label:'50L — Gaining momentum'},
+    {amt:80,label:'80L — Big Chola leap!'},{amt:100,label:'1 Crore — Halfway to FI corpus!'},
+    {amt:150,label:'1.5 Crore'},{amt:200,label:'2 Crore — FI corpus achieved!'},
+    {amt:250,label:'2.5 Crore'},{amt:300,label:'3 Crore'}
+  ];
+
+  // Bond monthly table
+  var tableRows=sorted.map(function(e,i){
+    var bonds=getBondTotal(e)||getLegacyBonds(e);
+    if(bonds===0)return null;
+    var prev=i>0?sorted.slice(0,i).reverse().find(function(p){return(getBondTotal(p)||getLegacyBonds(p))>0;}):null;
+    var prevBonds=prev?getBondTotal(prev)||getLegacyBonds(prev):null;
+    var diff=prevBonds!==null?bonds-prevBonds:null;
+    var passive=getBondIncome(e);
+    var legacyBond=getLegacyBonds(e);
+    var isMilestone=bondMilestones.some(function(m){
+      for(var j=0;j<sorted.length;j++){
+        var b2=getBondTotal(sorted[j])||getLegacyBonds(sorted[j]);
+        if(b2>=m.amt)return sorted[j].month===e.month&&sorted[j].year===e.year;
+      }return false;
+    });
+    var milestoneTag='';
+    bondMilestones.forEach(function(m){
+      var firstEntry=sorted.find(function(p){return(getBondTotal(p)||getLegacyBonds(p))>=m.amt;});
+      if(firstEntry&&firstEntry.month===e.month&&firstEntry.year===e.year)milestoneTag+='<span class="milestone-tag" style="font-size:9px">'+m.label+'</span>';
+    });
+    var blY=bonds>0?passive*12/bonds*100:0;
+    var yieldCell=passive>0?blY.toFixed(1)+'%':'<span style="color:var(--text3)">est.</span>';
+    return '<tr class="'+(isMilestone?'milestone-highlight-row':'')+'"><td style="font-weight:600">'+MONTHS[e.month]+' '+e.year+milestoneTag+'</td>'
+      +'<td class="num">'+fmtCrAlways(bonds)+'</td>'
+      +'<td class="num">'+(diff!==null?(diff>=0?'<span style="color:var(--green)">+'+fmtL(diff)+'</span>':'<span style="color:var(--red)">'+fmtL(diff)+'</span>'):'<span style="color:var(--text3)">start</span>')+'</td>'
+      +'<td class="num">'+(passive>0?'\u20B9'+fmtL(passive)+'/mo':'\u2014')+'</td>'
+      +'<td class="num">'+yieldCell+'</td>'
+      +'<td class="num">'+(e.notes?'<span style="font-size:11px;color:var(--text3)">'+e.notes+'</span>':'')+'</td>'
+      +'</tr>';
+  }).filter(Boolean).join('');
+
+  // latest bond data
+  var latestWithBonds=sorted.slice().reverse().find(function(e){return getBondTotal(e)>0||getLegacyBonds(e)>0;});
+  var currentBonds=latestWithBonds?(getBondTotal(latestWithBonds)||getLegacyBonds(latestWithBonds)):0;
+  var currentPassive=latestWithBonds?getBondIncome(latestWithBonds):0;
+  var blendedYield=currentBonds>0?currentPassive*12/currentBonds*100:0;
+  var bondPct=Math.min(100,currentBonds/bTarget*100);
+
+  // bond milestones check
+  var bondMRows=bondMilestones.map(function(bm){
+    var reached=sorted.find(function(e){return(getBondTotal(e)||getLegacyBonds(e))>=bm.amt;});
+    if(reached)return '<div class="ba-row"><div><span style="font-weight:600">\u20B9'+bm.label+'</span></div><div style="text-align:right"><span class="badge green">&#10003; '+MONTHS[reached.month]+' '+reached.year+'</span></div></div>';
+    var pct2=(currentBonds/bm.amt*100).toFixed(0);
+    return '<div class="ba-row"><div><span style="font-weight:600;color:var(--text2)">\u20B9'+bm.label+'</span></div><div style="text-align:right"><span class="badge gray">'+pct2+'% \u2014 \u20B9'+fmtL(bm.amt-currentBonds)+' to go</span></div></div>';
+  }).join('');
+
+  el.innerHTML=
+  // bond corpus header in Crores
+  '<div class="bond-cr-box"><div class="bond-cr-title">&#127974; Bond corpus summary &mdash; always in Crore</div>'
+  +'<div class="bond-cr-row">'
+  +'<div class="bond-cr-item"><div class="bond-cr-num">'+fmtCrAlways(currentBonds)+'</div><div class="bond-cr-label">Current corpus</div></div>'
+  +'<div class="bond-cr-item"><div class="bond-cr-num">\u20B9'+T.bondTarget+'\u00A0Cr</div><div class="bond-cr-label">Target corpus</div></div>'
+  +'<div class="bond-cr-item"><div class="bond-cr-num">'+bondPct.toFixed(0)+'%</div><div class="bond-cr-label">Target achieved</div></div>'
+  +'<div class="bond-cr-item"><div class="bond-cr-num">\u20B9'+fmtL(currentPassive)+'/mo</div><div class="bond-cr-label">Passive income now</div></div>'
+  +'</div></div>'
+
+  // yield sensitivity
+  +'<div class="card"><div class="card-title">Yield sensitivity at '+fmtCrAlways(currentBonds)+' corpus</div>'
+  +'<div class="table-wrap"><table><thead><tr><th>Yield</th><th>Monthly passive</th><th>Annual passive</th><th>vs today</th></tr></thead><tbody>'
+  +[8,8.5,9,9.5,10,10.5,11,11.5,12].map(function(y){
+    var monthly=currentBonds*y/100/12;
+    var annual=monthly*12;
+    var diff=monthly-currentPassive;
+    var cur=Math.abs(y-blendedYield)<0.26;
+    return '<tr style="'+(cur?'background:var(--green-bg)':'')+'">'
+      +'<td>'+(cur?'<strong>':'')+y+'%'+(cur?' \u25C4 current</strong>':'')+'</td>'
+      +'<td style="font-weight:600">\u20B9'+fmtL(monthly)+'/mo</td>'
+      +'<td>'+fmtCrAlways(annual)+'</td>'
+      +'<td style="color:'+(diff>0.01?'var(--green)':diff<-0.01?'var(--red)':'var(--text3)')+'">'+
+        (Math.abs(diff)>0.01?(diff>0?'+':'')+'\u20B9'+fmtL(Math.abs(diff))+'/mo':'\u2014')+'</td></tr>';
+  }).join('')+'</tbody></table></div></div>'
+
+  // monthly bond table
+  +'<div class="card"><div class="card-title">Bond corpus monthly history (Crore) \u2014 green rows = milestones</div>'
+  +'<div class="table-wrap"><table><thead><tr><th>Month</th><th>Corpus</th><th>Monthly change</th><th>Passive/mo</th><th>Yield</th><th>Notes</th></tr></thead><tbody>'+tableRows+'</tbody></table></div></div>'
+
+  // milestone check
+  +'<div class="card"><div class="card-title">Bond corpus milestones</div>'+bondMRows+'</div>'
+
+  // what-if
+  +'<div class="whatif-box"><div class="whatif-title">&#9881; What-if — income vs corpus</div>'
+  +'<div class="whatif-controls">'
+  +'<div class="form-group"><label style="color:var(--amber-text)">Bond corpus (\u20B9Cr)</label><input type="number" id="wi2-bonds" value="'+(currentBonds/100).toFixed(2)+'" step="0.1" class="whatif-input" oninput="calcWhatIf2()"></div>'
+  +'<div class="form-group"><label style="color:var(--amber-text)">Blended yield (%)</label><input type="number" id="wi2-yield" value="'+blendedYield.toFixed(1)+'" step="0.1" class="whatif-input" oninput="calcWhatIf2()"></div>'
+  +'<div class="form-group"><label style="color:var(--amber-text)">Monthly income target (\u20B9)</label><input type="number" id="wi2-income" value="'+T.incomeTarget+'" step="5000" class="whatif-input" oninput="calcWhatIf2()"></div>'
+  +'</div>'
+  +'<div class="whatif-result" id="wi2-result"></div>'
+  +'</div>';
+
+  calcWhatIf2();
+}
+function calcWhatIf2(){
+  var b=(parseFloat(document.getElementById('wi2-bonds').value)||0)*100;// convert Cr to L
+  var y=parseFloat(document.getElementById('wi2-yield').value)||0;
+  var target=parseFloat(document.getElementById('wi2-income').value)||150000;
+  var monthly=b*y/100/12;
+  var annual=monthly*12;
+  var corpusNeeded=y>0?target*12/y:0;// in L
+  var gap=corpusNeeded-b;
+  var el=document.getElementById('wi2-result');
+  if(!el)return;
+  el.innerHTML=fmtCrAlways(b)+' at '+y+'% yield \u2192 <strong>\u20B9'+fmtL(monthly)+'/month</strong> (\u20B9'+fmtCrAlways(annual)+'yr)'
+    +'<br>To earn \u20B9'+Math.round(target/1000)+'k/month at '+y+'% you need <strong>'+fmtCrAlways(corpusNeeded)+'</strong>'
+    +(gap>0.5?'<br>Gap: <strong>\u20B9'+fmtL(gap)+' more in bonds</strong>':'<br><strong style="color:var(--green)">&#10003; Target already achievable at this yield!</strong>');
+}
+
+// ── STOCKS TAB ────────────────────────────────────────────────────────────────
+var stockView='withMF'; // 'withMF' | 'withoutMF' | 'mfOnly'
+function renderStocks(){
+  var el=document.getElementById('stocks-content');
+  var sorted=data.slice().sort(function(a,b){return mkey(a.month,a.year)-mkey(b.month,b.year);});
+  if(!sorted.length){el.innerHTML='<div class="empty">No data.</div>';return;}
+
+  var first=sorted[0];
+  var latest=sorted[sorted.length-1];
+
+  function getStockVal(e,view){
+    if(view==='withMF')return getStocksWithMF(e);
+    if(view==='withoutMF')return getPureStocks(e);
+    return e.mf||0; // mfOnly
+  }
+
+  var views={withMF:{label:'Stocks + MF',color:'#7F77DD'},withoutMF:{label:'Stocks only (excl. MF)',color:'#D85A30'},mfOnly:{label:'Mutual Funds only',color:'#378ADD'}};
+  var curLabel=views[stockView].label;
+  var curColor=views[stockView].color;
+
+  // Build full table
+  var firstNonZero=sorted.find(function(e){return getStockVal(e,stockView)>0;});
+  var tableRows=sorted.map(function(e,i){
+    var val=getStockVal(e,stockView);
+    var prev=i>0?sorted[i-1]:null;
+    var prevVal=prev?getStockVal(prev,stockView):null;
+    var diff=prevVal!==null?val-prevVal:null;
+    var pctDiff=prevVal&&prevVal>0?diff/prevVal*100:null;
+    var cagr=firstNonZero?calcCAGR(getStockVal(firstNonZero,stockView),val,sorted.indexOf(e)-sorted.indexOf(firstNonZero)):null;
+    // stock milestones
+    var stockMilestones=[5,10,15,20,25,30,40,50,60,75,100];
+    var milestoneTag='';
+    stockMilestones.forEach(function(m){
+      var firstEntry=sorted.find(function(p){return getStockVal(p,stockView)>=m;});
+      if(firstEntry&&firstEntry.month===e.month&&firstEntry.year===e.year)milestoneTag+='<span class="milestone-tag" style="background:var(--purple-bg);color:var(--purple-text);font-size:9px">'+m+'L</span>';
+    });
+    return '<tr><td style="font-weight:600">'+MONTHS[e.month]+' '+e.year+milestoneTag+'</td>'
+      +'<td class="num" style="font-weight:600">\u20B9'+fmtL(val)+'</td>'
+      +'<td class="num">'+(diff!==null&&Math.abs(diff)>0.005?
+        '<span style="color:'+(diff>=0?'var(--green)':'var(--red)')+'">'+
+        (diff>=0?'+':'')+fmtL(diff)+'</span>':'<span style="color:var(--text3)">'+
+        (diff===null?'start':'\u2014')+'</span>')+'</td>'
+      +'<td class="num">'+(pctDiff!==null&&Math.abs(pctDiff)>0.01?
+        '<span class="badge '+(pctDiff>=0?'green':'red')+'">'+(pctDiff>=0?'+':'')+pctDiff.toFixed(1)+'%</span>':'<span style="color:var(--text3)">\u2014</span>')+'</td>'
+      +'<td class="num">'+(cagr!==null&&val>0?'<span style="color:var(--purple-text);font-weight:600">'+(cagr>=0?'+':'')+cagr.toFixed(1)+'%</span>':'<span style="color:var(--text3)">\u2014</span>')+'</td>'
+      +'</tr>';
+  }).join('');
+
+  // Summary stats
+  var firstVal=getStockVal(first,stockView);
+  var latestVal=getStockVal(latest,stockView);
+  var overallCAGR=firstNonZero?calcCAGR(getStockVal(firstNonZero,stockView),latestVal,sorted.indexOf(latest)-sorted.indexOf(firstNonZero)):null;
+
+  // monthly changes
+  var changes=[];
+  for(var i=1;i<sorted.length;i++){
+    var c=getStockVal(sorted[i],stockView)-getStockVal(sorted[i-1],stockView);
+    changes.push({month:sorted[i].month,year:sorted[i].year,change:c});
+  }
+  changes.sort(function(a,b){return b.change-a.change;});
+  var best=changes[0];
+  var worst=changes[changes.length-1];
+
+  // per-year CAGR
+  var yearGroups={};
+  sorted.forEach(function(e){if(!yearGroups[e.year])yearGroups[e.year]={start:null,end:null};yearGroups[e.year].end=e;if(!yearGroups[e.year].start)yearGroups[e.year].start=e;});
+  var yearCAGRRows=Object.keys(yearGroups).sort().map(function(y){
+    var yg=yearGroups[y];
+    var startVal=getStockVal(yg.start,stockView);
+    var endVal=getStockVal(yg.end,stockView);
+    var diff=endVal-startVal;
+    var prevYear=String(parseInt(y)-1);
+    var prevYg=yearGroups[prevYear];
+    var yearStart=prevYg?getStockVal(prevYg.end,stockView):startVal;
+    var gain=endVal-yearStart;
+    return '<tr><td style="font-weight:600">'+y+'</td>'
+      +'<td class="num">\u20B9'+fmtL(endVal)+'</td>'
+      +'<td class="num" style="color:'+(gain>=0?'var(--green)':'var(--red)')+'">'+fmtL(gain)+'</td>'
+      +'<td class="num" style="color:var(--purple-text)">'+(prevYg&&yearStart>0?((gain/yearStart*100).toFixed(1)+'%'):'\u2014')+'</td>'
+      +'</tr>';
+  }).join('');
+
+  el.innerHTML=
+  // view toggle
+  '<div class="stock-tabs">'
+  +'<button class="stock-tab '+(stockView==='withMF'?'active':'')+'\" onclick="stockView=\'withMF\';renderStocks()">Stocks + MF (total equity)</button>'
+  +'<button class="stock-tab '+(stockView==='withoutMF'?'active':'')+'\" onclick="stockView=\'withoutMF\';renderStocks()">Pure stocks (excl. MF)</button>'
+  +'<button class="stock-tab '+(stockView==='mfOnly'?'active':'')+'\" onclick="stockView=\'mfOnly\';renderStocks()">Mutual funds only</button>'
+  +'</div>'
+
+  // summary
+  +'<div class="stock-summary-box"><div class="stock-summary-title">&#128201; '+curLabel+' summary</div>'
+  +'<div class="stock-cagr-grid">'
+  +'<div class="stock-cagr-item"><div class="stock-cagr-num">\u20B9'+fmtL(latestVal)+'</div><div class="stock-cagr-label">Current value</div></div>'
+  +'<div class="stock-cagr-item"><div class="stock-cagr-num">'+(overallCAGR!==null?(overallCAGR>=0?'+':'')+overallCAGR.toFixed(1)+'%':'\u2014')+'</div><div class="stock-cagr-label">CAGR since start</div></div>'
+  +'<div class="stock-cagr-item"><div class="stock-cagr-num">\u20B9'+fmtCr(latestVal*Math.pow(1+T.eqCAGR/100,5))+'</div><div class="stock-cagr-label">5yr projection @ '+T.eqCAGR+'%</div></div>'
+  +'</div>'
+  +(best?'<div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:10px;font-size:12px;color:var(--purple-text)">'
+    +'<span>&#127942; Best month: <strong>+\u20B9'+fmtL(best.change)+'</strong> ('+FULL[best.month]+' '+best.year+')</span>'
+    +(worst&&worst.change<0?'<span>&#128722; Hardest: <strong>'+fmtL(worst.change)+'</strong> ('+FULL[worst.month]+' '+worst.year+')</span>':'')
+    +'</div>':'')
+  +'</div>'
+
+  // milestones
+  +'<div class="card"><div class="card-title">Stock milestones \u2014 '+curLabel+'</div>'
+  +function(){
+    var stockMs=[5,10,15,20,25,30,40,50,60,75,100,125,150];
+    return stockMs.map(function(m){
+      var reached=sorted.find(function(e){return getStockVal(e,stockView)>=m;});
+      if(reached){
+        var idx=sorted.indexOf(reached);
+        var prevReached=stockMs.slice(0,stockMs.indexOf(m)).reverse().reduce(function(acc,pm){
+          if(acc)return acc;
+          return sorted.find(function(e){return getStockVal(e,stockView)>=pm;})||null;
+        },null);
+        var prevIdx=prevReached?sorted.indexOf(prevReached):null;
+        var gapStr=prevIdx!==null?'(+'+(idx-prevIdx)+' months since \u20B9'+prevReached.pLabel+')'
+          :'('+idx+' months from start)';
+        reached.pLabel=m+'L';
+        return '<div class="ba-row"><div><span style="font-weight:600">\u20B9'+m+'L</span><span style="font-size:11px;color:var(--text3);margin-left:8px">'+gapStr+'</span></div>'
+          +'<span class="badge green">&#10003; '+FULL[reached.month]+' '+reached.year+'</span></div>';
+      }
+      var pct2=latestVal>0?(latestVal/m*100).toFixed(0):0;
+      return '<div class="ba-row"><div><span style="font-weight:600;color:var(--text2)">\u20B9'+m+'L</span></div>'
+        +'<span class="badge gray">'+pct2+'% \u2014 \u20B9'+fmtL(m-latestVal)+' to go</span></div>';
+    }).join('');
+  }()
+  +'</div>'
+
+  // year-by-year table
+  +'<div class="card"><div class="card-title">Year-by-year '+curLabel+' performance</div>'
+  +'<div class="table-wrap"><table><thead><tr><th>Year</th><th>Year-end value</th><th>Gain in year</th><th>Year return</th></tr></thead><tbody>'
+  +yearCAGRRows+'</tbody></table></div></div>'
+
+  // monthly detail table
+  +'<div class="card"><div class="card-title">Monthly detail \u2014 '+curLabel+' (purple = milestone)</div>'
+  +'<div class="table-wrap"><table><thead><tr><th>Month</th><th>Value</th><th>Monthly change</th><th>Monthly %</th><th>CAGR from start</th></tr></thead><tbody>'
+  +tableRows+'</tbody></table></div></div>'
+
+  // compounding projection
+  +'<div class="card"><div class="card-title">&#127807; Compounding projection \u2014 '+curLabel+' @ '+T.eqCAGR+'% CAGR (no new additions)</div>'
+  +'<div class="table-wrap"><table><thead><tr><th>Horizon</th><th>Year</th><th>Projected value</th><th>Gain</th></tr></thead><tbody>'
+  +[1,2,3,5,7,10,15,20].map(function(y){
+    var proj=latestVal*Math.pow(1+T.eqCAGR/100,y);
+    return '<tr><td>+'+y+' yr</td><td>'+(2026+y)+'</td><td style="font-weight:600">\u20B9'+fmtCr(proj)+'</td><td style="color:var(--green)">+\u20B9'+fmtCr(proj-latestVal)+'</td></tr>';
+  }).join('')+'</tbody></table></div>'
+  +'<div style="font-size:11px;color:var(--text3);margin-top:8px">Compounding silently works. You never need to sell to generate this wealth.</div>'
+  +'</div>';
+}
+
+// ── MILESTONES ────────────────────────────────────────────────────────────────
+function renderMilestones(){
+  var el=document.getElementById('milestones-content');
+  var sorted=data.slice().sort(function(a,b){return mkey(a.month,a.year)-mkey(b.month,b.year);});
+  if(!sorted.length){el.innerHTML='<div class="empty">No data yet.</div>';return;}
+
+  var milestones=[
+    {amt:20,label:'20L',emoji:'&#127807;'},{amt:25,label:'25L',emoji:'&#128200;'},
+    {amt:50,label:'50L',emoji:'&#129351;'},{amt:75,label:'75L',emoji:'&#128640;'},
+    {amt:100,label:'1 Crore',emoji:'&#127881;'},{amt:125,label:'1.25 Crore',emoji:'&#11088;'},
+    {amt:150,label:'1.5 Crore',emoji:'&#128171;'},{amt:175,label:'1.75 Crore',emoji:'&#128293;'},
+    {amt:200,label:'2 Crore \u2014 FI Begins!',emoji:'&#127942;'},{amt:250,label:'2.5 Crore',emoji:'&#128081;'},
+    {amt:300,label:'3 Crore',emoji:'&#127775;'},{amt:500,label:'5 Crore',emoji:'&#128176;'},
+    {amt:1000,label:'10 Crore',emoji:'&#127758;'}
+  ];
+
+  var current=getTotal(sorted[sorted.length-1]);
+  var totalMonths=sorted.length;
+  var totalGain=current-getTotal(sorted[0]);
+  var avgPerMonth=totalGain/totalMonths;
+  var cagr=calcCAGR(getTotal(sorted[0]),current,totalMonths);
+
+  var monthlyChanges=[];
+  for(var i=1;i<sorted.length;i++){
+    var ch=getTotal(sorted[i])-getTotal(sorted[i-1]);
+    monthlyChanges.push({month:sorted[i].month,year:sorted[i].year,change:ch});
+  }
+  monthlyChanges.sort(function(a,b){return b.change-a.change;});
+  var best=monthlyChanges[0];
+  var worst=monthlyChanges[monthlyChanges.length-1];
+
+  // doubling
+  var doublings=[];
+  for(var j=1;j<sorted.length;j++){
+    var v=getTotal(sorted[j]);
+    for(var k=0;k<j;k++){
+      var pv=getTotal(sorted[k]);
+      if(v>=pv*2){
+        if(!doublings.some(function(d){return d.fromIdx===k;}))doublings.push({fromIdx:k,toIdx:j,from:sorted[k],to:sorted[j],months:j-k,startVal:pv,endVal:v});
+        break;
+      }
+    }
+  }
+
+  var nextFound=false;
+  var timelineHTML=milestones.map(function(m,idx){
+    var reached=null,moIdx=0;
+    for(var i=0;i<sorted.length;i++){if(getTotal(sorted[i])>=m.amt){reached=sorted[i];moIdx=i;break;}}
+    var status=reached?'done':(nextFound?'future':'next');
+    if(!reached&&!nextFound)nextFound=true;
+    var detail='';
+    if(reached){
+      detail=FULL[reached.month]+' '+reached.year+' \u2014 after <strong>'+moIdx+' months</strong>';
+      if(idx>0){
+        var pm=milestones[idx-1],pr=null,pi=0;
+        for(var i2=0;i2<sorted.length;i2++){if(getTotal(sorted[i2])>=pm.amt){pr=sorted[i2];pi=i2;break;}}
+        if(pr){var gap=moIdx-pi;detail+=' \u2014 <em>'+gap+' month'+(gap===1?'':'s')+' after \u20B9'+pm.label+'</em>';}
+      }
+    }else{
+      detail=(current/m.amt*100).toFixed(0)+'% there \u2014 \u20B9'+fmtL(m.amt-current)+' to go';
+    }
+    return '<div class="tl-item"><div class="tl-dot '+status+'">'+(status==='done'?'&#10003;':status==='next'?'&#9658;':'')+'</div>'
+      +'<div><div class="tl-label">'+m.emoji+' \u20B9'+m.label+'</div><div class="tl-date">'+detail+'</div></div></div>';
+  }).join('');
+
+  el.innerHTML=
+  '<div class="speed-box"><div class="speed-title">&#128640; Your wealth-building speed</div>'
+  +'<div class="speed-grid">'
+  +'<div class="speed-item"><div class="speed-num">'+totalMonths+'</div><div class="speed-label">Months tracked</div></div>'
+  +'<div class="speed-item"><div class="speed-num">\u20B9'+fmtL(avgPerMonth)+'</div><div class="speed-label">Avg monthly gain</div></div>'
+  +'<div class="speed-item"><div class="speed-num">'+(cagr!==null?cagr.toFixed(1)+'%':'\u2014')+'</div><div class="speed-label">CAGR overall</div></div>'
+  +'<div class="speed-item"><div class="speed-num">\u20B9'+fmtCr(totalGain)+'</div><div class="speed-label">Total created</div></div>'
+  +'</div></div>'
+
+  +'<div class="insight-grid">'
+  +'<div class="insight-card green"><div class="insight-label">&#127942; Best month</div><div class="insight-value">+\u20B9'+fmtL(best.change)+'</div><div class="insight-sub">'+FULL[best.month]+' '+best.year+'</div></div>'
+  +(worst&&worst.change<0?'<div class="insight-card red"><div class="insight-label">&#128722; Hardest month</div><div class="insight-value">'+fmtL(worst.change)+'</div><div class="insight-sub">'+FULL[worst.month]+' '+worst.year+' \u2014 you recovered fully</div></div>':'')
+  +'<div class="insight-card blue"><div class="insight-label">&#127881; Journey age</div><div class="insight-value">'+Math.floor(totalMonths/12)+'y '+totalMonths%12+'m</div><div class="insight-sub">Started at 26 in Jul 2022 \u2014 early start gives you a massive compounding edge.</div></div>'
+  +'<div class="insight-card amber"><div class="insight-label">&#128176; Wealth from scratch</div><div class="insight-value">\u20B9'+fmtCr(totalGain)+'</div><div class="insight-sub">Every rupee a decision, a discipline, a delayed gratification.</div></div>'
+  +'</div>'
+
+  +(doublings.length?'<div class="card"><div class="card-title">&#9889; Wealth doubling events</div>'
+  +doublings.map(function(d){return '<div class="ba-row"><div><div style="font-weight:600">\u20B9'+fmtCr(d.startVal)+' doubled to \u20B9'+fmtCr(d.endVal)+'</div><div style="font-size:11px;color:var(--text2)">'+FULL[d.from.month]+' '+d.from.year+' \u2192 '+FULL[d.to.month]+' '+d.to.year+'</div></div><span class="badge blue">'+d.months+' months</span></div>';}).join('')
+  +'</div>':'')
+
+  +'<div class="card"><div class="card-title">Total portfolio milestones</div><div class="timeline">'+timelineHTML+'</div></div>'
+
+  +'<div class="card"><div class="card-title">&#128214; Journey highlights</div>'
+  +'<div style="font-size:13px;color:var(--text2);line-height:2.5">'
+  +'&#127807; <strong>Jul 2022</strong> \u2014 Started at 26 with \u20B919.6L. The FI plan is born.<br>'
+  +'&#128722; <strong>Nov 2022</strong> \u2014 First portfolio dip. Held steady. Character test passed.<br>'
+  +'&#127974; <strong>Jun 2023</strong> \u2014 <strong>First bond tranche \u2014 Chola 10L.</strong> FI engine ignition.<br>'
+  +'&#128200; <strong>Dec 2023</strong> \u2014 Bonds doubled to 20L in one move. Conviction.<br>'
+  +'&#128640; <strong>May 2024</strong> \u2014 Crossed \u20B975L. Zerodha surge was the fuel.<br>'
+  +'&#127881; <strong>Nov 2024</strong> \u2014 <strong>\u20B91 Crore \u2014 28 months in.</strong> Tiger US started.<br>'
+  +'&#127760; <strong>Nov 2024</strong> \u2014 First global diversification via Tiger US.<br>'
+  +'&#127807; <strong>Mar 2025</strong> \u2014 Aionion stocks started with just \u20B920k. Seeds compound.<br>'
+  +'&#128171; <strong>Jul 2025</strong> \u2014 <strong>Crossed \u20B91.5 Crore.</strong> Chola closed, all moved to Aionion.<br>'
+  +'&#127974; <strong>Dec 2025</strong> \u2014 <strong>Bond corpus hits \u20B91 Crore.</strong> Halfway to FI income.<br>'
+  +'&#128293; <strong>Feb 2026</strong> \u2014 \u20B91.79 Cr total \u00B7 passive engine generating \u20B975k+/month'
+  +'</div></div>';
+}
+
+// ── INSIGHTS ──────────────────────────────────────────────────────────────────
+function renderInsights(){
+  var el=document.getElementById('insights-content');
+  var sorted=data.slice().sort(function(a,b){return mkey(a.month,a.year)-mkey(b.month,b.year);});
+  if(sorted.length<3){el.innerHTML='<div class="empty">Need more data.</div>';return;}
+  var latest=sorted[sorted.length-1];
+  var first=sorted[0];
+  var total=getTotal(latest);
+  var bonds=getBondTotal(latest);
+  var passive=getBondIncome(latest);
+  var longStocks=getLongTermStocks(latest);
+  var totalMonths=sorted.length;
+  var blendedYield=bonds>0?passive*12/bonds*100:T.bondYield;
+  var cagr=calcCAGR(getTotal(first),total,totalMonths)||0;
+  var pureStocks=getPureStocks(latest);
+
+  var positiveMonths=0;
+  for(var i=1;i<sorted.length;i++){if(getTotal(sorted[i])>getTotal(sorted[i-1]))positiveMonths++;}
+  var consistency=Math.round(positiveMonths/(sorted.length-1)*100);
+
+  var r3=sorted.slice(-4);
+  var rolling3m=r3.length>=2?(getTotal(r3[r3.length-1])-getTotal(r3[0]))/getTotal(r3[0])*100:0;
+
+  var doubleMonths=cagr>0?Math.ceil(Math.log(2)/Math.log(1+cagr/100)*12):null;
+
+  var withBonds=sorted.filter(function(e){return getBondTotal(e)>0;});
+  var avgBondGrowth=withBonds.length>=2?(getBondTotal(withBonds[withBonds.length-1])-getBondTotal(withBonds[0]))/(withBonds.length-1):0;
+
+  var passiveRs=passive*100000;
+  var annualPassive=passiveRs*12;
+  var passiveTargets=[75000,100000,150000,200000];
+  var passiveETAs=passiveTargets.map(function(pt){
+    var targetBondL=pt*12/(blendedYield||9)*100;
+    var needMore=targetBondL-bonds;
+    if(needMore<=0)return{target:pt,done:true};
+    var months=avgBondGrowth>0?Math.ceil(needMore/avgBondGrowth):null;
+    var etaDate=months?new Date(Date.now()+months*30.44*24*3600*1000):null;
+    return{target:pt,done:false,months:months,eta:etaDate?MONTHS[etaDate.getMonth()+1]+' '+etaDate.getFullYear():null};
+  });
+
+  el.innerHTML=
+  '<div class="card"><div class="card-title">&#128161; Things you might not know about your corpus</div>'
+  +'<div class="insight-grid">'
+  +'<div class="insight-card green"><div class="insight-label">&#127945; Portfolio consistency</div><div class="insight-value">'+consistency+'%</div><div class="insight-sub">of months had positive growth. Most retail investors are at 60\u201370%. You\'re above average.</div></div>'
+  +'<div class="insight-card blue"><div class="insight-label">&#9889; Rolling 3-month gain</div><div class="insight-value">'+(rolling3m>=0?'+':'')+rolling3m.toFixed(1)+'%</div><div class="insight-sub">Recent momentum. If above CAGR/4 you\'re accelerating.</div></div>'
+  +'<div class="insight-card amber"><div class="insight-label">&#9201; Doubling time</div><div class="insight-value">'+(doubleMonths?Math.floor(doubleMonths/12)+'y '+doubleMonths%12+'m':'\u2014')+'</div><div class="insight-sub">At '+cagr.toFixed(1)+'% CAGR, corpus doubles by '+(doubleMonths?new Date(Date.now()+doubleMonths*30.44*24*3600*1000).getFullYear():'?')+'</div></div>'
+  +'<div class="insight-card purple"><div class="insight-label">&#128197; Annual passive income</div><div class="insight-value">'+fmtCrAlways(annualPassive/100000)+'</div><div class="insight-sub">\u20B9'+Math.round(annualPassive).toLocaleString('en-IN')+'/year. Tax-efficient. Recurring. Growing every quarter.</div></div>'
+  +'<div class="insight-card teal"><div class="insight-label">&#9745; Each 0.5% yield boost worth</div><div class="insight-value">+\u20B9'+fmtL(bonds*0.005/12)+'/mo</div><div class="insight-sub">At current bond corpus. Negotiating 1\u20132% higher yield is worth serious effort.</div></div>'
+  +'<div class="insight-card green"><div class="insight-label">&#127807; Stocks at FI date ('+T.fiYear+')</div><div class="insight-value">\u20B9'+fmtCr(longStocks*Math.pow(1+T.eqCAGR/100,T.fiYear-2026))+'</div><div class="insight-sub">At '+T.eqCAGR+'% CAGR, your permanent equity engine without adding a rupee.</div></div>'
+  +'<div class="insight-card orange"><div class="insight-label">&#128200; Pure stocks CAGR (excl. MF)</div><div class="insight-value">'+(function(){var fw=sorted.find(function(e){return getPureStocks(e)>0;});return fw?((calcCAGR(getPureStocks(fw),pureStocks,sorted.indexOf(latest)-sorted.indexOf(fw))||0).toFixed(1)+'%'):'\u2014';}())+'</div><div class="insight-sub">Your direct stock picking performance since Upstox days.</div></div>'
+  +'<div class="insight-card blue"><div class="insight-label">&#128184; Tiger US — hidden corpus</div><div class="insight-value">\u20B9'+fmtL(latest.tigerInr||0)+'</div><div class="insight-sub">Not counted in FI corpus (FEMA/RBI). When liquidated on return, adds major boost to equity engine.</div></div>'
+  +'</div></div>'
+
+  // passive ETA table
+  +'<div class="card"><div class="card-title">&#127919; When will you hit each passive income level?</div>'
+  +passiveETAs.map(function(p){
+    var eta=p.done?'<span class="badge green">&#10003; Already there!</span>':
+      (p.eta?'<span class="badge blue">~'+p.months+' months \u00B7 '+p.eta+'</span>':'<span class="badge gray">Add more data</span>');
+    return '<div class="ba-row"><span class="ba-label">\u20B9'+Math.round(p.target/1000)+'k/month passive income</span><div>'+eta+'</div></div>';
+  }).join('')
+  +'<div style="font-size:11px;color:var(--text3);margin-top:8px">Based on avg bond addition of \u20B9'+fmtL(avgBondGrowth)+'/month at '+blendedYield.toFixed(1)+'% blended yield.</div>'
+  +'</div>'
+
+  // compounding table
+  +'<div class="card"><div class="card-title">&#128202; Long-term equity projection @ '+T.eqCAGR+'% CAGR</div>'
+  +'<div class="table-wrap"><table><thead><tr><th>Horizon</th><th>Year</th><th>Stocks + MF projected</th><th>Gain</th></tr></thead><tbody>'
+  +[1,2,3,5,7,10,15,20].map(function(y){
+    var proj=longStocks*Math.pow(1+T.eqCAGR/100,y);
+    return '<tr><td>+'+y+' yr</td><td>'+(2026+y)+'</td><td style="font-weight:600">\u20B9'+fmtCr(proj)+'</td><td style="color:var(--green)">+\u20B9'+fmtCr(proj-longStocks)+'</td></tr>';
+  }).join('')+'</tbody></table></div>'
+  +'<div style="font-size:12px;color:var(--text3);margin-top:8px">Zero new contributions assumed. Just time and compounding.</div>'
+  +'</div>'
+
+  // what-if
+  +'<div class="whatif-box"><div class="whatif-title">&#9881; What-if calculator</div>'
+  +'<div class="whatif-controls">'
+  +'<div class="form-group"><label style="color:var(--amber-text)">Bond corpus (\u20B9Cr)</label><input type="number" id="wi-bonds" value="'+(bonds/100).toFixed(2)+'" step="0.1" class="whatif-input" oninput="calcWhatIf()"></div>'
+  +'<div class="form-group"><label style="color:var(--amber-text)">Blended yield (%)</label><input type="number" id="wi-yield" value="'+blendedYield.toFixed(1)+'" step="0.1" class="whatif-input" oninput="calcWhatIf()"></div>'
+  +'<div class="form-group"><label style="color:var(--amber-text)">Monthly income target (\u20B9)</label><input type="number" id="wi-income" value="'+T.incomeTarget+'" step="5000" class="whatif-input" oninput="calcWhatIf()"></div>'
+  +'</div>'
+  +'<div class="whatif-result" id="wi-result"></div>'
+  +'</div>'
+
+  // things you might be missing
+  +'<div class="missed-card"><div class="missed-title">&#128680; Things you might be missing or under-monitoring</div>'
+  +[
+    {icon:'&#128176;',label:'Inflation erosion on FI corpus',detail:'At 6% inflation, your ₹1.5L/month target needs to become ₹2L+/month by 2031 in real terms. Consider building a 10–15% buffer above your income target.'},
+    {icon:'&#127968;',label:'No emergency liquid fund tracked',detail:'Your portfolio has limited savings bank balance visible. 6-month emergency fund (₹5–8L liquid) is typically missing in high-investment portfolios.'},
+    {icon:'&#128203;',label:'Tiger US CAGR not being tracked',detail:'Your Tiger US has grown from $608 to $18,800 — roughly 30× in 15 months. That\'s performance data worth recording formally for future decisions.'},
+    {icon:'&#128200;',label:'No MF scheme-level data',detail:'MF value is tracked as a lump sum. You don\'t currently see which schemes are outperforming/underperforming or when LTCG rebalancing is optimal.'},
+    {icon:'&#128176;',label:'Bond maturity calendar not visible',detail:'You have multiple tranches but no maturity schedule view. Knowing when each bond matures helps plan reinvestment without a cash flow gap.'},
+    {icon:'&#128203;',label:'LTCG threshold monitoring',detail:'₹1L LTCG exemption per year. With ₹'+fmtCr(longStocks)+' in stocks, systematic annual harvesting within ₹1L can save taxes over time.'},
+    {icon:'&#128184;',label:'SGD FX risk on Tiger US',detail:'USD/INR has moved from 80→91 in 4 years (+14%). This benefits Tiger US returns when converting back. But rupee appreciation post-return could cut gains. Worth factoring in.'},
+    {icon:'&#9749;',label:'Crypto not included in net worth',detail:'Coinbase S$540+ is tracked but excluded from totals. If it grows substantially, its FEMA classification on India return needs advance planning.'}
+  ].map(function(r){return '<div class="missed-row"><div class="missed-icon">'+r.icon+'</div><div class="missed-body"><div class="missed-label">'+r.label+'</div><div class="missed-detail">'+r.detail+'</div></div></div>';}).join('')
+  +'</div>';
+  calcWhatIf();
+}
+
+function calcWhatIf(){
+  var b=(parseFloat(document.getElementById('wi-bonds').value)||0)*100;
+  var y=parseFloat(document.getElementById('wi-yield').value)||0;
+  var target=parseFloat(document.getElementById('wi-income').value)||150000;
+  var monthly=b*y/100/12;
+  var annual=monthly*12;
+  var corpusNeeded=y>0?target*12/y:0;
+  var gap=corpusNeeded-b;
+  var el=document.getElementById('wi-result');
+  if(!el)return;
+  el.innerHTML=fmtCrAlways(b)+' at '+y+'% yield \u2192 <strong>\u20B9'+fmtL(monthly)+'/month</strong> (\u20B9'+fmtCrAlways(annual/100000)+'yr)'
+    +'<br>Corpus needed for \u20B9'+Math.round(target/1000)+'k/month: <strong>'+fmtCrAlways(corpusNeeded)+'</strong>'
+    +(gap>0.5?'<br>Gap: <strong>\u20B9'+fmtL(gap)+' more</strong>':'<br><strong style="color:var(--green)">&#10003; Target already achievable!</strong>');
+}
+
+initData();
+loadTargets();
+renderDashboard();
+</script>
+</body>
+</html>
